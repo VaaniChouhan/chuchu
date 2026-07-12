@@ -18,8 +18,8 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
 .metro-health-check*
+.metro-cache/
 
 # debug
 npm-debug.*
