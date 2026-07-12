@@ -40,7 +40,7 @@ export function OutfitCard({ outfit, onWear, onShowAnother }: OutfitCardProps) {
       <View style={styles.garmentGrid}>
         {outfit.items.map((item) => (
           <View key={item.id} style={styles.garmentSlot}>
-            <Image source={{ uri: item.imageUri }} style={styles.garmentImage} />
+            <Image source={{ uri: item.imageUri }} style={styles.garmentImage} resizeMode="cover" />
             <View style={styles.badgeContainer}>
               <View style={[styles.colorIndicator, { backgroundColor: item.dominantColor ?? colors.cocoa }]} />
               <Text style={styles.categoryLabel}>{item.category}</Text>
@@ -113,7 +113,6 @@ const styles = StyleSheet.create({
   garmentImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   badgeContainer: {
     position: "absolute",

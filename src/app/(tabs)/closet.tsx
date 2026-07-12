@@ -113,7 +113,7 @@ export default function Closet() {
         accessibilityLabel={`${item.category} garment`}
         accessibilityHint="Double tap to view garment details, or press and hold to manage status"
       >
-        <Image source={{ uri: item.imageUri }} style={styles.gridImage} />
+        <Image source={{ uri: item.imageUri }} style={styles.gridImage} resizeMode="cover" />
         <View style={[styles.colorIndicator, { backgroundColor: item.dominantColor }]} />
         
         {badgeText !== "" && (
@@ -339,7 +339,6 @@ const styles = StyleSheet.create({
   gridImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
   },
   colorIndicator: {
     position: "absolute",
