@@ -1,5 +1,5 @@
 const { getDefaultConfig } = require("expo/metro-config");
-const FileStore = require("metro-cache/src/stores/FileStore");
+const { FileStore } = require("metro-cache");
 const path = require("path");
 
 /** @type {import('expo/metro-config').MetroConfig} */
