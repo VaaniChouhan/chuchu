@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Modal, Alert, TextInput } from "reac
 import { colors, radius, typeScale, shadow } from "@/theme/tokens";
 import { getDb } from "@/db/schema";
 import { ChuChuMascot } from "@/components/ChuChu";
+import { hapticSuccess } from "@/utils/haptics";
 import ReAnimated, { SlideInDown } from "react-native-reanimated";
 
 interface CheckInModalProps {
@@ -33,6 +34,7 @@ export function CheckInModal({ visible, onClose }: CheckInModalProps) {
         [historyId, selected, note]
       );
 
+      hapticSuccess();
       Alert.alert("Feedback Logged! 🎀", "Thank you! ChuChu will use this to optimize tomorrow's recommendations.");
       onClose();
     } catch (e) {
