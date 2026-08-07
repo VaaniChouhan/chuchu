@@ -1,4 +1,6 @@
+import React, { useState } from "react";
 import { View, Image, Text, StyleSheet, Pressable } from "react-native";
+import ReAnimated, { FadeIn, SlideInUp } from "react-native-reanimated";
 import { colors, radius, shadow } from "@/theme/tokens";
 import { SwingTag } from "./SwingTag";
 import { ReasonPillRow } from "./ReasonPillRow";
@@ -22,12 +24,23 @@ interface OutfitCardProps {
   onShowAnother?: () => void;
 }
 
-export function OutfitCard({ outfit, onWear, onShowAnother }: OutfitCardProps) {
+export const OutfitCard = React.memo(function OutfitCard({ outfit, onWear, onShowAnother }: OutfitCardProps) {
+  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+
   const confidencePercent = Math.round(outfit.score * 100);
   const confidenceLabel = outfit.score >= 0.85 ? "Great" : outfit.score >= 0.7 ? "Good" : "Low";
 
+  const handleImageError = (itemId: number) => {
+    setFailedImages((prev) => ({ ...prev, [itemId]: true }));
+  };
+
   return (
-    <View style={styles.card}>
+    <ReAnimated.View entering={FadeIn.duration(400).delay(100)}>
+      <View
+        style={styles.card}
+        accessible={true}
+        accessibilityLabel={`Outfit recommendation with ${outfit.items.length} items, ${confidencePercent}% match score`}
+      >
       {/* SwingTag Overlay */}
       <SwingTag percent={confidencePercent} label={confidenceLabel} />
 
@@ -40,7 +53,19 @@ export function OutfitCard({ outfit, onWear, onShowAnother }: OutfitCardProps) {
       <View style={styles.garmentGrid}>
         {outfit.items.map((item) => (
           <View key={item.id} style={styles.garmentSlot}>
-            <Image source={{ uri: item.imageUri }} style={styles.garmentImage} resizeMode="cover" />
+            {failedImages[item.id] || !item.imageUri ? (
+              <View style={styles.imageFallback}>
+                <Text style={styles.fallbackEmoji}>👔</Text>
+                <Text style={styles.fallbackCategory}>{item.category}</Text>
+              </View>
+            ) : (
+              <Image
+                source={{ uri: item.imageUri }}
+                style={styles.garmentImage}
+                resizeMode="cover"
+                onError={() => handleImageError(item.id)}
+              />
+            )}
             <View style={styles.badgeContainer}>
               <View style={[styles.colorIndicator, { backgroundColor: item.dominantColor ?? colors.cocoa }]} />
               <Text style={styles.categoryLabel}>{item.category}</Text>
@@ -56,19 +81,33 @@ export function OutfitCard({ outfit, onWear, onShowAnother }: OutfitCardProps) {
 
       {/* Interactive Actions */}
       <View style={styles.actionBlock}>
-        <Pressable style={styles.primaryBtn} onPress={onWear}>
+        <Pressable
+          style={styles.primaryBtn}
+          onPress={onWear}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Wear This Outfit"
+          accessibilityHint="Log this outfit to your daily wear history"
+        >
           <Text style={styles.primaryBtnText}>Wear This</Text>
         </Pressable>
-        
+
         {onShowAnother && (
-          <Pressable style={styles.secondaryBtn} onPress={onShowAnother}>
+          <Pressable
+            style={styles.secondaryBtn}
+            onPress={onShowAnother}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Show another outfit option"
+          >
             <Text style={styles.secondaryBtnText}>Show another</Text>
           </Pressable>
         )}
       </View>
     </View>
+    </ReAnimated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -113,6 +152,23 @@ const styles = StyleSheet.create({
   garmentImage: {
     width: "100%",
     height: "100%",
+  },
+  imageFallback: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: colors.creamDeep,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+  },
+  fallbackEmoji: {
+    fontSize: 28,
+  },
+  fallbackCategory: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 10,
+    color: colors.cocoaSoft,
+    textTransform: "uppercase",
   },
   badgeContainer: {
     position: "absolute",

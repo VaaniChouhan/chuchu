@@ -7,20 +7,22 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+import { lightColors, darkColors } from '@/theme/tokens';
+
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: lightColors.cocoa,
+    background: lightColors.whiteSoft,
+    backgroundElement: lightColors.creamLinen,
+    backgroundSelected: lightColors.creamDeep,
+    textSecondary: lightColors.cocoaSoft,
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: darkColors.cocoa,
+    background: darkColors.whiteSoft,
+    backgroundElement: darkColors.creamLinen,
+    backgroundSelected: darkColors.creamDeep,
+    textSecondary: darkColors.cocoaSoft,
   },
 } as const;
 

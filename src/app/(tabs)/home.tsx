@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Pressable, Alert, ScrollView } from "react-native";
+import { Platform, StyleSheet, View, Text, Pressable, Alert, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { colors, radius, typeScale, shadow } from "@/theme/tokens";
@@ -8,14 +8,18 @@ import { getAllWardrobeItems, WardrobeItem } from "@/db/wardrobe.repository";
 import { generateOutfitSuggestion, Outfit } from "@/ml/styleEngine";
 import { OutfitCard } from "@/components/OutfitCard";
 import { CheckInModal } from "@/components/CheckInModal";
+import { QuickActionDial } from "@/components/QuickActionDial";
+import { ChuChuMascot } from "@/components/ChuChu";
 import { getDb } from "@/db/schema";
+import { hapticLight, hapticSuccess } from "@/utils/haptics";
 
 export default function Home() {
+
   const greeting = useGreeting();
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [suggestion, setSuggestion] = useState<Outfit | null>(null);
+  const [altOutfits, setAltOutfits] = useState<Outfit[]>([]);
   const [seed, setSeed] = useState(0);
-  const [regensToday, setRegensToday] = useState(0);
   const [checkInVisible, setCheckInVisible] = useState(false);
 
   const loadWardrobe = async () => {
@@ -25,6 +29,12 @@ export default function Home() {
       if (allItems.length > 0) {
         const suggestionResult = generateOutfitSuggestion(allItems, seed);
         setSuggestion(suggestionResult);
+        
+        const alt1 = generateOutfitSuggestion(allItems, seed + 1);
+        const alt2 = generateOutfitSuggestion(allItems, seed + 2);
+        const alt3 = generateOutfitSuggestion(allItems, seed + 3);
+        const alts = [alt1, alt2, alt3].filter((a): a is Outfit => a !== null);
+        setAltOutfits(alts);
       }
     } catch (e) {
       console.error("Failed to load suggestions:", e);
@@ -43,8 +53,6 @@ export default function Home() {
         if (lastLogDate !== todayStr) {
           setCheckInVisible(true);
         }
-      } else {
-        setCheckInVisible(true); // First check-in ever
       }
     } catch (e) {
       console.warn("Failed to check daily feedback log status:", e);
@@ -57,27 +65,27 @@ export default function Home() {
   }, [seed]);
 
   const handleShowAnother = () => {
-    if (regensToday >= 3) {
-      Alert.alert(
-        "Trust ChuChu! 🎀",
-        "That's 3 alternatives generated already! We recommend trusting these or adding more items to your closet.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
+    hapticLight();
     setSeed((prev) => prev + 1);
-    setRegensToday((prev) => prev + 1);
   };
 
   const handleWear = async () => {
+    hapticSuccess();
     if (!suggestion) return;
     try {
       const db = getDb();
       const ids = suggestion.items.map((i) => i.id);
-      await db.runAsync(
+      const res = await db.runAsync(
         "INSERT INTO outfit_history (item_ids, confidence) VALUES (?, ?)",
-        [JSON.stringify(ids), suggestion.score]
+        ['', suggestion.score]
       );
+      const historyId = res.lastInsertRowId;
+      for (const id of ids) {
+        await db.runAsync(
+          "INSERT INTO outfit_items (outfit_history_id, wardrobe_item_id) VALUES (?, ?)",
+          [historyId, id]
+        );
+      }
       Alert.alert(
         "Outfit Logged! ✨",
         "Your outfit for today is registered. Check back this evening for feedback!",
@@ -92,7 +100,8 @@ export default function Home() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Greetings Section */}
-        <View style={styles.header}>
+        <View style={styles.greetingBlock} accessible={true} accessibilityRole="header">
+          <Text style={styles.greetingEyebrow}>{greeting.eyebrow}</Text>
           <Text style={styles.greetingTitle}>{greeting.greet}</Text>
           <Text style={styles.greetingSubtitle}>{greeting.sub}</Text>
         </View>
@@ -118,28 +127,52 @@ export default function Home() {
               onPress={() => router.push("/add-item" as any)}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Scan Garments"
-              accessibilityHint="Proceed to scan wardrobe items page"
+              accessibilityLabel="Scan garments to add to your closet"
             >
               <Text style={styles.emptyBtnText}>Scan Garments</Text>
             </Pressable>
           </View>
         )}
 
-        {/* Cute speech bubble advice from ChuChu */}
-        <View style={styles.bubble}>
-          <Text style={styles.bubbleMascot}>🌷</Text>
-          <View style={styles.bubbleContent}>
-            <Text style={styles.bubbleTitle}>ChuChu's Tip</Text>
-            <Text style={styles.bubbleText}>
-              "Wear light, soft fabrics when styling warm neutral colors to maintain visual balance."
-            </Text>
+        {/* ChuChu Speech Note */}
+        <View style={styles.chuchuNote}>
+          <ChuChuMascot size={44} />
+          <View style={styles.speechBubble}>
+            <Text style={styles.speechText}>{greeting.line}</Text>
           </View>
+        </View>
+
+        {/* Alternate Outfits Row */}
+        <View style={styles.altSection}>
+          <Text style={styles.altSectionTitle}>Alternate Pairings</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.altRow}>
+            {altOutfits.map((alt, idx) => {
+              const bg = alt.items[0]?.dominantColor || colors.sagePale;
+              const conf = Math.round(alt.score * 100);
+              return (
+                <Pressable 
+                  key={idx} 
+                  style={styles.altCard} 
+                  onPress={() => { hapticLight(); setSeed(seed + idx + 1); }}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show alternate outfit ${idx + 1}`}
+                  accessibilityHint="Shows another outfit combination"
+                >
+                  <View style={[styles.altSwatch, { backgroundColor: bg }]} />
+                  <Text style={styles.altConf}>{conf}% Match</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
       </ScrollView>
 
       {/* Daily feedback check-in loop */}
       <CheckInModal visible={checkInVisible} onClose={() => setCheckInVisible(false)} />
+
+      {/* Floating Speed Dial (+) for Quick Actions */}
+      <QuickActionDial />
     </SafeAreaView>
   );
 }
@@ -151,20 +184,29 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
+    gap: 20,
     paddingBottom: 80,
-    gap: 24,
   },
-  header: {
-    gap: 6,
+  greetingBlock: {
+    paddingHorizontal: 4,
+    gap: 2,
+  },
+  greetingEyebrow: {
+    fontFamily: "Nunito-ExtraBold",
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    color: colors.roseDark,
+    marginBottom: 2,
   },
   greetingTitle: {
     fontFamily: "Fraunces-SemiBold",
-    fontSize: typeScale.greeting,
+    fontSize: 26,
     color: colors.cocoa,
-    lineHeight: 34,
+    letterSpacing: -0.2,
   },
   greetingSubtitle: {
-    fontFamily: "Nunito-Bold",
+    fontFamily: "Nunito-Regular",
     fontSize: 14,
     color: colors.cocoaSoft,
   },
@@ -208,32 +250,58 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
   },
-  bubble: {
+  chuchuNote: {
     flexDirection: "row",
-    gap: 16,
-    backgroundColor: colors.creamLinen,
-    borderWidth: 1.5,
-    borderColor: colors.creamDeep,
-    borderRadius: radius.md,
-    padding: 16,
-    alignItems: "center",
+    alignItems: "flex-end",
+    gap: 10,
+    marginVertical: 6,
   },
-  bubbleMascot: {
-    fontSize: 32,
+  speechBubble: {
+    backgroundColor: colors.goldPale,
+    borderRadius: 15,
+    borderBottomLeftRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    maxWidth: 220,
+    ...shadow.soft,
   },
-  bubbleContent: {
-    flex: 1,
-    gap: 4,
+  speechText: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 13,
+    color: colors.cocoa,
   },
-  bubbleTitle: {
+  altSection: {
+    gap: 10,
+    marginTop: 4,
+  },
+  altSectionTitle: {
     fontFamily: "Fraunces-SemiBold",
     fontSize: 14,
     color: colors.cocoa,
   },
-  bubbleText: {
+  altRow: {
+    gap: 12,
+    paddingVertical: 4,
+  },
+  altCard: {
+    width: 100,
+    backgroundColor: colors.whiteSoft,
+    borderRadius: radius.md,
+    padding: 10,
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.creamDeep,
+    ...shadow.soft,
+  },
+  altSwatch: {
+    width: "100%",
+    height: 56,
+    borderRadius: 10,
+  },
+  altConf: {
     fontFamily: "Nunito-Bold",
-    fontSize: 12,
+    fontSize: 10,
     color: colors.cocoaSoft,
-    lineHeight: 16,
   },
 });

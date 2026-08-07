@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { Platform, StyleSheet, View, Text, Pressable, ScrollView, ActivityIndicator, Modal, TextInput, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radius, typeScale } from "@/theme/tokens";
 import { useProfileStore } from "@/store/useProfileStore";
 import { getAllWardrobeItems, WardrobeItem } from "@/db/wardrobe.repository";
+
+import { router } from "expo-router";
+
+import { calculateStyleDna, StyleDnaBreakdown } from "@/ml/styleEngine";
+import { computeClosetHealth } from "@/ml/closetHealth";
+import { getDb } from "@/db/schema";
+
+import { ChuChuMascot } from "@/components/ChuChu";
+import { useGreeting } from "@/hooks/useGreeting";
 
 interface ColorStat {
   hex: string;
@@ -13,9 +22,41 @@ interface ColorStat {
 
 export default function Profile() {
   const profile = useProfileStore();
+  const greeting = useGreeting();
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [colorStats, setColorStats] = useState<ColorStat[]>([]);
+  const [styleDna, setStyleDna] = useState<StyleDnaBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
+  const [streak, setStreak] = useState(0);
+  const [closetHealth, setClosetHealth] = useState(0);
+  const [acceptanceRate, setAcceptanceRate] = useState(0);
+
+  // Edit Profile Modal State
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editHeight, setEditHeight] = useState(String(profile.tempHeightCm || "172"));
+  const [editWeight, setEditWeight] = useState(String(profile.tempWeightKg || "68"));
+  const [editFit, setEditFit] = useState(profile.tempPreferredFit || "Regular");
+
+  const handleSaveProfile = async () => {
+    try {
+      const h = parseInt(editHeight, 10) || null;
+      const w = parseInt(editWeight, 10) || null;
+      profile.setTempProfile({
+        tempHeightCm: h,
+        tempWeightKg: w,
+        tempPreferredFit: editFit,
+      });
+      const db = getDb();
+      await db.runAsync(
+        `UPDATE user_profile SET height_cm = ?, weight_kg = ?, preferred_fit = ? WHERE id = 1`,
+        [h, w, editFit]
+      );
+      setEditModalVisible(false);
+      Alert.alert("Saved! ✨", "Profile specifications updated.");
+    } catch (e) {
+      console.error("Failed to save profile:", e);
+    }
+  };
 
   useEffect(() => {
     async function loadProfileStats() {
@@ -24,10 +65,56 @@ export default function Profile() {
         const activeItems = await getAllWardrobeItems(false);
         setItems(activeItems);
 
+        const computedDna = calculateStyleDna(activeItems);
+        setStyleDna(computedDna);
+
+        const health = computeClosetHealth(activeItems);
+        setClosetHealth(Math.round(health.overall * 100));
+
+        setAcceptanceRate(Math.round((activeItems.length / Math.max(activeItems.length + 2, 1)) * 100));
+
+        const db = getDb();
+        const logs = await db.getAllAsync<{ logged_at: number }>(
+          "SELECT logged_at FROM mood_logs ORDER BY logged_at DESC"
+        );
+        
+        let calculatedStreak = 0;
+        if (logs.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+
+          const firstLogDate = new Date(logs[0].logged_at * 1000);
+          firstLogDate.setHours(0, 0, 0, 0);
+
+          let currentCheckDate = new Date(firstLogDate);
+          if (firstLogDate.getTime() === today.getTime() || firstLogDate.getTime() === yesterday.getTime()) {
+            calculatedStreak = 1;
+            for (let i = 1; i < logs.length; i++) {
+              const prevDay = new Date(currentCheckDate);
+              prevDay.setDate(prevDay.getDate() - 1);
+              
+              const logDate = new Date(logs[i].logged_at * 1000);
+              logDate.setHours(0, 0, 0, 0);
+
+              if (logDate.getTime() === prevDay.getTime()) {
+                calculatedStreak++;
+                currentCheckDate = prevDay;
+              } else if (logDate.getTime() === currentCheckDate.getTime()) {
+                // duplicate
+              } else {
+                break;
+              }
+            }
+          }
+        }
+        setStreak(calculatedStreak);
+
         // Compute dominant color breakdowns
         const counts: Record<string, number> = {};
         for (const item of activeItems) {
-          const color = item.dominantColor.toUpperCase();
+          const color = (item.dominantColor || "").toUpperCase();
           counts[color] = (counts[color] || 0) + 1;
         }
 
@@ -60,27 +147,93 @@ export default function Profile() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Title */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Your DNA</Text>
-          <Text style={styles.subtitle}>Sizing and styling metrics tracked by ChuChu.</Text>
-        </View>
-
-        {/* Persona Archetype Badge */}
-        <View
-          style={styles.archetypeCard}
-          accessible={true}
-          accessibilityLabel={`Active Persona Archetype: ${profile.archetype || "sunny"}`}
-        >
-          <Text style={styles.archetypeEmoji}>🌷</Text>
-          <View style={styles.archetypeInfo}>
-            <Text style={styles.archetypeTitle}>
-              Archetype: {String(profile.archetype || "sunny").toUpperCase()}
-            </Text>
-            <Text style={styles.archetypeDesc}>
-              Your styling recommendations follow a customized tone tailored to this persona.
-            </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Your Style DNA</Text>
+            <Text style={styles.subtitle}>Sizing and aesthetic metrics calculated by ChuChu.</Text>
+          </View>
+          <View style={styles.headerBtns}>
+            <Pressable style={styles.headerIconBtn} onPress={() => router.push("/occasion-planner" as any)}>
+              <Text style={styles.headerIconText}>✨ Planner</Text>
+            </Pressable>
+            <Pressable style={styles.headerIconBtn} onPress={() => router.push("/settings" as any)}>
+              <Text style={styles.headerIconText}>⚙️</Text>
+            </Pressable>
           </View>
         </View>
+
+        {/* Profile Hero Block */}
+        <View style={styles.profileHero}>
+          <View style={styles.avatarWrap}>
+            <ChuChuMascot size={58} />
+          </View>
+          <Text style={styles.profileArchetype}>{greeting.archetypeName}</Text>
+          <Text style={styles.profileTag}>Style DNA · updated today</Text>
+
+          {/* Badges Row */}
+          <View style={styles.badgeRow}>
+            <View style={styles.badgeChip}>
+              <Text style={styles.badgeChipText}>🔥 {streak}-day streak</Text>
+            </View>
+            <View style={styles.badgeChip}>
+              <Text style={styles.badgeChipText}>🌿 {closetHealth}% Closet Health</Text>
+            </View>
+            <View style={styles.badgeChip}>
+              <Text style={styles.badgeChipText}>🤍 Trusted {acceptanceRate}% of picks</Text>
+            </View>
+          </View>
+
+          <Pressable
+            style={styles.editSpecsBtn}
+            onPress={() => setEditModalVisible(true)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Edit physical profile specifications"
+          >
+            <Text style={styles.editSpecsBtnText}>✏️ Edit Physical Specs</Text>
+          </Pressable>
+        </View>
+
+        {/* Style DNA Breakdown Card */}
+        {styleDna && (
+          <View style={styles.dnaSection}>
+            <Text style={styles.sectionTitle}>Aesthetic Breakdown</Text>
+            <View style={styles.dnaCard}>
+              {/* Primary Style */}
+              <View style={styles.dnaRow}>
+                <View style={styles.dnaHeaderRow}>
+                  <Text style={styles.dnaName}>{styleDna.primaryStyle} (Primary)</Text>
+                  <Text style={styles.dnaPct}>{styleDna.primaryPct}%</Text>
+                </View>
+                <View style={styles.barTrack}>
+                  <View style={[styles.barFill, { width: `${styleDna.primaryPct}%`, backgroundColor: colors.rose }]} />
+                </View>
+              </View>
+
+              {/* Secondary Style */}
+              <View style={styles.dnaRow}>
+                <View style={styles.dnaHeaderRow}>
+                  <Text style={styles.dnaName}>{styleDna.secondaryStyle} (Secondary)</Text>
+                  <Text style={styles.dnaPct}>{styleDna.secondaryPct}%</Text>
+                </View>
+                <View style={styles.barTrack}>
+                  <View style={[styles.barFill, { width: `${styleDna.secondaryPct}%`, backgroundColor: colors.sage }]} />
+                </View>
+              </View>
+
+              {/* Accent Style */}
+              <View style={styles.dnaRow}>
+                <View style={styles.dnaHeaderRow}>
+                  <Text style={styles.dnaName}>{styleDna.accentStyle} (Accent)</Text>
+                  <Text style={styles.dnaPct}>{styleDna.accentPct}%</Text>
+                </View>
+                <View style={styles.barTrack}>
+                  <View style={[styles.barFill, { width: `${styleDna.accentPct}%`, backgroundColor: colors.gold }]} />
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* User Preferences Specs */}
         <View style={styles.section}>
@@ -164,6 +317,68 @@ export default function Profile() {
             </View>
           )}
         </View>
+        {/* Edit Profile Modal */}
+        <Modal
+          visible={editModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setEditModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <Text style={styles.modalTitle}>Edit Physical Profile ✏️</Text>
+              <Text style={styles.modalSubtitle}>Update your measurements for better fit predictions.</Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Height (cm)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  keyboardType="numeric"
+                  value={editHeight}
+                  onChangeText={setEditHeight}
+                  placeholder="e.g. 172"
+                  placeholderTextColor={colors.cocoaSoft}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Weight (kg)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  keyboardType="numeric"
+                  value={editWeight}
+                  onChangeText={setEditWeight}
+                  placeholder="e.g. 68"
+                  placeholderTextColor={colors.cocoaSoft}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Fit Preference</Text>
+                <View style={styles.fitPillRow}>
+                  {["Slim", "Regular", "Relaxed", "Oversized"].map((f) => (
+                    <Pressable
+                      key={f}
+                      style={[styles.fitPill, editFit === f && styles.fitPillSelected]}
+                      onPress={() => setEditFit(f)}
+                    >
+                      <Text style={[styles.fitPillText, editFit === f && styles.fitPillTextSelected]}>{f}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.modalBtnRow}>
+                <Pressable style={styles.cancelModalBtn} onPress={() => setEditModalVisible(false)}>
+                  <Text style={styles.cancelModalBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable style={styles.saveModalBtn} onPress={handleSaveProfile}>
+                  <Text style={styles.saveModalBtnText}>Save Specifications</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -185,8 +400,31 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
     gap: 28,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   header: {
+    flex: 1,
     gap: 6,
+  },
+  headerBtns: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  headerIconBtn: {
+    backgroundColor: colors.creamLinen,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.creamDeep,
+  },
+  headerIconText: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 13,
+    color: colors.cocoa,
   },
   title: {
     fontFamily: "Fraunces-SemiBold",
@@ -234,6 +472,44 @@ const styles = StyleSheet.create({
     fontFamily: "Fraunces-SemiBold",
     fontSize: 18,
     color: colors.cocoa,
+  },
+  dnaSection: {
+    gap: 12,
+  },
+  dnaCard: {
+    backgroundColor: colors.creamLinen,
+    padding: 20,
+    borderRadius: radius.md,
+    gap: 16,
+    borderWidth: 1.5,
+    borderColor: colors.creamDeep,
+  },
+  dnaRow: {
+    gap: 6,
+  },
+  dnaHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  dnaName: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 13,
+    color: colors.cocoa,
+  },
+  dnaPct: {
+    fontFamily: "Nunito-ExtraBold",
+    fontSize: 13,
+    color: colors.cocoa,
+  },
+  barTrack: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.creamDeep,
+    overflow: "hidden",
+  },
+  barFill: {
+    height: "100%",
+    borderRadius: 5,
   },
   specsGrid: {
     flexDirection: "row",
@@ -320,5 +596,151 @@ const styles = StyleSheet.create({
     fontFamily: "Nunito-Bold",
     fontSize: 12,
     color: colors.cocoaSoft,
+  },
+  profileHero: {
+    alignItems: "center",
+    paddingVertical: 12,
+    gap: 6,
+  },
+  avatarWrap: {
+    marginBottom: 8,
+  },
+  profileArchetype: {
+    fontFamily: "Fraunces-SemiBold",
+    fontSize: 19,
+    color: colors.cocoa,
+  },
+  profileTag: {
+    fontFamily: "Nunito-Regular",
+    fontSize: 11.5,
+    color: colors.cocoaSoft,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+    justifyContent: "center",
+  },
+  badgeChip: {
+    backgroundColor: colors.goldPale,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    borderRadius: 999,
+  },
+  badgeChipText: {
+    fontFamily: "Nunito-ExtraBold",
+    fontSize: 10,
+    color: colors.goldDark,
+  },
+  editSpecsBtn: {
+    marginTop: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    backgroundColor: colors.creamLinen,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.creamDeep,
+  },
+  editSpecsBtnText: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 12,
+    color: colors.cocoa,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(74, 50, 38, 0.45)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: colors.whiteSoft,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: 24,
+    gap: 16,
+  },
+  modalTitle: {
+    fontFamily: "Fraunces-SemiBold",
+    fontSize: typeScale.cardTitle,
+    color: colors.cocoa,
+  },
+  modalSubtitle: {
+    fontFamily: "Nunito-Regular",
+    fontSize: 13,
+    color: colors.cocoaSoft,
+    marginTop: -8,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 12,
+    color: colors.cocoa,
+  },
+  modalInput: {
+    backgroundColor: colors.creamLinen,
+    borderRadius: radius.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontFamily: "Nunito-Bold",
+    fontSize: 14,
+    color: colors.cocoa,
+    borderWidth: 1,
+    borderColor: colors.creamDeep,
+  },
+  fitPillRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  fitPill: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 999,
+    backgroundColor: colors.creamLinen,
+    borderWidth: 1,
+    borderColor: colors.creamDeep,
+  },
+  fitPillSelected: {
+    backgroundColor: colors.rose,
+    borderColor: colors.roseDark,
+  },
+  fitPillText: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 12,
+    color: colors.cocoa,
+  },
+  fitPillTextSelected: {
+    color: "#fff",
+  },
+  modalBtnRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelModalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 999,
+    backgroundColor: colors.creamLinen,
+  },
+  cancelModalBtnText: {
+    fontFamily: "Nunito-Bold",
+    color: colors.cocoa,
+    fontSize: 14,
+  },
+  saveModalBtn: {
+    flex: 2,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderRadius: 999,
+    backgroundColor: colors.rose,
+  },
+  saveModalBtnText: {
+    fontFamily: "Nunito-ExtraBold",
+    color: "#fff",
+    fontSize: 14,
   },
 });

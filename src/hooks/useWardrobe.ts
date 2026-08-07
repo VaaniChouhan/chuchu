@@ -7,7 +7,10 @@ export function useWardrobe() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await getAllWardrobeItems();
+    const data = await getAllWardrobeItems().catch((err) => {
+      console.error("Failed to load wardrobe items from database:", err);
+      return [] as WardrobeItem[];
+    });
     setItems(data);
     setLoading(false);
   }, []);

@@ -6,6 +6,9 @@ import { colors, radius, typeScale } from "@/theme/tokens";
 import { useProfileStore } from "@/store/useProfileStore";
 import { getAllWardrobeItems, WardrobeItem } from "@/db/wardrobe.repository";
 import { OutfitCard, Outfit } from "@/components/OutfitCard";
+import { StepIndicator } from "@/components/StepIndicator";
+import { hapticSuccess } from "@/utils/haptics";
+import Animated, { ZoomIn } from "react-native-reanimated";
 
 export default function FirstRecommendation() {
   const completeOnboarding = useProfileStore((s) => s.completeOnboarding);
@@ -29,6 +32,7 @@ export default function FirstRecommendation() {
             reasons: ["Fits your style profile", "Great color compatibility", "Ready to wear"],
           };
           setOutfit(recommendation);
+          hapticSuccess();
         }
       } catch (e) {
         console.error("Failed to load first recommendation:", e);
@@ -40,6 +44,7 @@ export default function FirstRecommendation() {
   }, []);
 
   const handleFinish = async () => {
+    hapticSuccess();
     // Marks onboarding as complete (writing to SQLite user_profile)
     await completeOnboarding();
     router.replace("/(tabs)/home");
@@ -47,6 +52,7 @@ export default function FirstRecommendation() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StepIndicator totalSteps={6} currentStep={6} />
       <View style={styles.content}>
         <Text style={styles.title}>Looking sharp! 🌷</Text>
         <Text style={styles.subtitle}>Here is your first daily outfit recommendation designed by ChuChu.</Text>
@@ -54,9 +60,9 @@ export default function FirstRecommendation() {
         {loading && <ActivityIndicator size="large" color={colors.rose} />}
 
         {!loading && outfit && (
-          <View style={styles.cardContainer}>
+          <Animated.View style={styles.cardContainer} entering={ZoomIn.duration(400)}>
             <OutfitCard outfit={outfit} onWear={handleFinish} />
-          </View>
+          </Animated.View>
         )}
 
         {!loading && !outfit && (

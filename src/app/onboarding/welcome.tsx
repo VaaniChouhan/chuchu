@@ -1,14 +1,16 @@
-import { StyleSheet, Text, Pressable } from "react-native";
+import { Platform, StyleSheet, Text, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, radius, typeScale } from "@/theme/tokens";
 import { ChuChuIllustration } from "@/components/ChuChuIllustration";
+import { StepIndicator } from "@/components/StepIndicator";
 
 export default function Welcome() {
   return (
     <LinearGradient colors={[colors.lilacPale, colors.creamLinen]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
+        <StepIndicator totalSteps={6} currentStep={1} />
         <View style={styles.mascotContainer}>
           <ChuChuIllustration pose="sleepy" size={140} />
         </View>
@@ -27,8 +29,6 @@ export default function Welcome() {
     </LinearGradient>
   );
 }
-
-import { View } from "react-native";
 
 const styles = StyleSheet.create({
   container: {

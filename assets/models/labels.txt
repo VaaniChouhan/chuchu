@@ -1,0 +1,11 @@
+top
+bottom
+dress
+outerwear
+shoes
+kurta
+saree
+lehenga
+dupatta
+sherwani
+accessory

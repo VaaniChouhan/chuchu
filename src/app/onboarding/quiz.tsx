@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Platform, View, Text, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { archetypeAccents, Archetype, colors, radius, typeScale } from "@/theme/tokens";
 import { useProfileStore } from "@/store/useProfileStore";
+import { StepIndicator } from "@/components/StepIndicator";
 
 const OPTIONS: { archetype: Archetype; emoji: string; label: string }[] = [
   { archetype: "dreamer", emoji: "🌷", label: "Tea in bed, taking it slow" },
@@ -17,6 +18,7 @@ export default function Quiz() {
   const setArchetype = useProfileStore((s) => s.setArchetype);
 
   const handleSelect = (a: Archetype) => {
+    if (selected) return;
     setSelected(a);
     setArchetype(a);
     // Visual delay to let the user see the selected choice
@@ -27,18 +29,8 @@ export default function Quiz() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Progress Dots */}
-      <View style={styles.dots}>
-        {[1, 1, 0, 0, 0, 0].map((done, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              { backgroundColor: done ? colors.cocoa : colors.creamDeep },
-            ]}
-          />
-        ))}
-      </View>
+      {/* Progress Indicator */}
+      <StepIndicator totalSteps={6} currentStep={2} />
 
       <Text style={styles.question}>Your ideal Sunday morning looks like...</Text>
 
@@ -78,17 +70,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.whiteSoft,
     paddingTop: 40,
     paddingHorizontal: 24,
-  },
-  dots: {
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    marginBottom: 32,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   question: {
     fontFamily: "Fraunces-SemiBold",

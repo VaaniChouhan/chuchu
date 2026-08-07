@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Pressable, Modal, Animated, Dimensions } from "react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { colors, radius } from "@/theme/tokens";
 
 export interface ActionOption {
@@ -16,29 +16,48 @@ interface ActionSheetProps {
 }
 
 export function ActionSheet({ visible, onClose, title, options }: ActionSheetProps) {
+  const [rendered, setRendered] = useState(visible);
   const slideAnim = useRef(new Animated.Value(Dimensions.get("window").height)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      setRendered(true);
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      Animated.timing(slideAnim, {
-        toValue: Dimensions.get("window").height,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: Dimensions.get("window").height,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setRendered(false);
+      });
     }
   }, [visible]);
 
-  if (!visible) return null;
+  if (!rendered) return null;
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
+    <Modal visible={rendered} transparent={true} animationType="none" onRequestClose={onClose}>
+      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
         {/* Backdrop Tap to Close */}
         <Pressable style={styles.backdrop} onPress={onClose} />
 
@@ -72,7 +91,7 @@ export function ActionSheet({ visible, onClose, title, options }: ActionSheetPro
             <Text style={styles.closeText}>Cancel</Text>
           </Pressable>
         </Animated.View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }

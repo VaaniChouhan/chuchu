@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { colors } from "@/theme/tokens";
 
@@ -10,7 +10,7 @@ interface ChuChuIllustrationProps {
   animated?: boolean;
 }
 
-export function ChuChuIllustration({ pose, size = 120, animated = true }: ChuChuIllustrationProps) {
+export const ChuChuIllustration = memo(function ChuChuIllustration({ pose, size = 120, animated = true }: ChuChuIllustrationProps) {
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -120,6 +120,9 @@ export function ChuChuIllustration({ pose, size = 120, animated = true }: ChuChu
 
   return (
     <Animated.View
+      accessible={true}
+      accessibilityRole="image"
+      accessibilityLabel={`ChuChu mascot, ${pose} pose`}
       style={[
         styles.container,
         {
@@ -159,7 +162,7 @@ export function ChuChuIllustration({ pose, size = 120, animated = true }: ChuChu
       </View>
     </Animated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

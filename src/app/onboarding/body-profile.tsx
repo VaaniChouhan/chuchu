@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, Pressable, StyleSheet, TextInput, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, TextInput, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { colors, radius, typeScale } from "@/theme/tokens";
 import { useProfileStore } from "@/store/useProfileStore";
+import { StepIndicator } from "@/components/StepIndicator";
 
 const SWATCHES = [
   { name: "Cool", color: "#F5D4C1", description: "Pink/blue undertones, burns easily" },
@@ -14,6 +15,7 @@ const SWATCHES = [
 export default function BodyProfile() {
   const setTempProfile = useProfileStore((s) => s.setTempProfile);
 
+  const [isAdult, setIsAdult] = useState<boolean | null>(null);
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [fit, setFit] = useState<string | null>(null);
@@ -23,9 +25,25 @@ export default function BodyProfile() {
   const [undertone, setUndertone] = useState<string | null>(null);
 
   const handleNext = () => {
+    if (!isAdult) {
+      Alert.alert("Age Verification Required", "You must confirm that you are 18 or older under the DPDP Act to continue.");
+      return;
+    }
+    const parsedHeight = height ? parseFloat(height) : null;
+    const parsedWeight = weight ? parseFloat(weight) : null;
+
+    if (parsedHeight !== null && (isNaN(parsedHeight) || parsedHeight < 50 || parsedHeight > 260)) {
+      Alert.alert("Invalid Height", "Please enter a realistic height between 50 cm and 260 cm.");
+      return;
+    }
+    if (parsedWeight !== null && (isNaN(parsedWeight) || parsedWeight < 20 || parsedWeight > 350)) {
+      Alert.alert("Invalid Weight", "Please enter a realistic weight between 20 kg and 350 kg.");
+      return;
+    }
+
     setTempProfile({
-      tempHeightCm: height ? parseFloat(height) : null,
-      tempWeightKg: weight ? parseFloat(weight) : null,
+      tempHeightCm: parsedHeight,
+      tempWeightKg: parsedWeight,
       tempPreferredFit: fit,
       tempBudgetTier: budget,
       tempSkinUndertone: undertone,
@@ -33,26 +51,38 @@ export default function BodyProfile() {
     router.replace("/onboarding/add-items");
   };
 
-  const isFormValid = fit && budget && (undertoneMethod !== null);
+  const isFormValid = isAdult && fit && budget && (undertoneMethod !== null);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Progress Dots */}
-        <View style={styles.dots}>
-          {[1, 1, 1, 1, 0, 0].map((done, i) => (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                { backgroundColor: done ? colors.cocoa : colors.creamDeep },
-              ]}
-            />
-          ))}
-        </View>
+        {/* Progress Indicator */}
+        <StepIndicator totalSteps={6} currentStep={4} />
 
         <Text style={styles.question}>Tell us about yourself</Text>
         <Text style={styles.subtext}>This helps ChuChu customize sizing and color matching options.</Text>
+
+        {/* Age Gate Check (DPDP Act Compliance) */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Age Verification (DPDP Compliance)</Text>
+          <Pressable
+            style={[styles.ageCard, isAdult && styles.ageCardActive]}
+            onPress={() => setIsAdult(!isAdult)}
+            accessible={true}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: !!isAdult }}
+            accessibilityLabel="I confirm I am 18 years or older"
+          >
+            <Text style={styles.ageEmoji}>🛡️</Text>
+            <View style={styles.ageInfo}>
+              <Text style={styles.ageTitle}>I confirm I am 18 years or older</Text>
+              <Text style={styles.ageSub}>Required to collect body measurement metrics per privacy standards.</Text>
+            </View>
+            <View style={[styles.checkbox, isAdult && styles.checkboxChecked]}>
+              {isAdult && <Text style={styles.checkMark}>✓</Text>}
+            </View>
+          </Pressable>
+        </View>
 
         {/* Height & Weight Inputs */}
         <View style={styles.row}>
@@ -273,6 +303,56 @@ const styles = StyleSheet.create({
   section: {
     gap: 10,
     marginBottom: 20,
+  },
+  ageCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.creamLinen,
+    padding: 14,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.creamDeep,
+  },
+  ageCardActive: {
+    borderColor: colors.rose,
+    backgroundColor: colors.whiteSoft,
+  },
+  ageEmoji: {
+    fontSize: 22,
+  },
+  ageInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  ageTitle: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 13,
+    color: colors.cocoa,
+  },
+  ageSub: {
+    fontFamily: "Nunito-Regular",
+    fontSize: 11,
+    color: colors.cocoaSoft,
+    lineHeight: 14,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.cocoaSoft,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: colors.rose,
+    borderColor: colors.rose,
+  },
+  checkMark: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
   toggleRow: {
     flexDirection: "row",

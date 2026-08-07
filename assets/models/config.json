@@ -1,0 +1,7 @@
+{
+  "input_shape": [1, 224, 224, 3],
+  "output_classes": 11,
+  "labels_file": "labels.txt",
+  "model_version": "0.1.0-stub",
+  "note": "Placeholder config. Replace with trained model metadata."
+}

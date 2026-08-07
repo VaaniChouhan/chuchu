@@ -1,3 +1,4 @@
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useProfileStore } from "@/store/useProfileStore";
 import { archetypeAccents, colors } from "@/theme/tokens";
@@ -7,12 +8,17 @@ interface SwingTagProps {
   label: string;
 }
 
-export function SwingTag({ percent, label }: SwingTagProps) {
+export const SwingTag = React.memo(function SwingTag({ percent, label }: SwingTagProps) {
   const archetype = useProfileStore((s) => s.archetype) ?? "sunny";
   const accentColor = archetypeAccents[archetype].accent;
 
   return (
-    <View style={styles.wrapper} accessibilityLabel={`Confidence: ${percent} percent, ${label}`}>
+    <View
+      style={styles.wrapper}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={`Confidence match: ${percent} percent, ${label}`}
+    >
       {/* Little tag string */}
       <View style={styles.string} />
       {/* Tag body */}
@@ -23,7 +29,7 @@ export function SwingTag({ percent, label }: SwingTagProps) {
       <View style={styles.hole} />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrapper: {

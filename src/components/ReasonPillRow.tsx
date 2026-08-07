@@ -1,3 +1,4 @@
+import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { colors, radius } from "@/theme/tokens";
 
@@ -5,12 +6,16 @@ interface ReasonPillRowProps {
   reasons: string[];
 }
 
-export function ReasonPillRow({ reasons }: ReasonPillRowProps) {
+export const ReasonPillRow = React.memo(function ReasonPillRow({ reasons }: ReasonPillRowProps) {
+  if (!reasons || reasons.length === 0) return null;
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
+      accessible={true}
+      accessibilityLabel={`Styling reasons: ${reasons.join(", ")}`}
     >
       {reasons.map((reason, i) => (
         <View key={i} style={styles.pill}>
@@ -19,7 +24,7 @@ export function ReasonPillRow({ reasons }: ReasonPillRowProps) {
       ))}
     </ScrollView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

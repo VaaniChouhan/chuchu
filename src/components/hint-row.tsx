@@ -11,7 +11,10 @@ type HintRowProps = {
   hint?: ReactNode;
 };
 
-export function HintRow({ title = 'Try editing', hint = 'app/index.tsx' }: HintRowProps) {
+export function HintRow({
+  title = 'Quick Tip',
+  hint = 'Tap + to add new garments to your closet',
+}: HintRowProps) {
   return (
     <View style={styles.stepRow}>
       <ThemedText type="small">{title}</ThemedText>
@@ -26,10 +29,12 @@ const styles = StyleSheet.create({
   stepRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   codeSnippet: {
     borderRadius: Spacing.two,
     paddingVertical: Spacing.half,
     paddingHorizontal: Spacing.two,
+    flexShrink: 1,
   },
 });

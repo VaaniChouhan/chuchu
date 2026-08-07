@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { View, Text, Pressable, StyleSheet, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { colors, radius, typeScale } from "@/theme/tokens";
 import { useProfileStore } from "@/store/useProfileStore";
+import { StepIndicator } from "@/components/StepIndicator";
 
 export default function StyleImport() {
   const setTempProfile = useProfileStore((s) => s.setTempProfile);
   const [photoCount, setPhotoCount] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleUpload = async () => {
     try {
@@ -28,9 +36,9 @@ export default function StyleImport() {
         setPhotoCount(result.assets.length);
         setTempProfile({ tempStyleImportSource: "photos" });
         // Proceed automatically after a brief delay
-        setTimeout(() => {
+        timerRef.current = setTimeout(() => {
           router.replace("/onboarding/body-profile");
-        }, 1000);
+        }, 800);
       }
     } catch (e) {
       console.error("Style import upload failed:", e);
@@ -38,24 +46,15 @@ export default function StyleImport() {
   };
 
   const handleSkip = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     setTempProfile({ tempStyleImportSource: "skipped" });
     router.replace("/onboarding/body-profile");
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Progress Dots */}
-      <View style={styles.dots}>
-        {[1, 1, 1, 0, 0, 0].map((done, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              { backgroundColor: done ? colors.cocoa : colors.creamDeep },
-            ]}
-          />
-        ))}
-      </View>
+      {/* Progress Indicator */}
+      <StepIndicator totalSteps={6} currentStep={3} />
 
       <Text style={styles.question}>Seed your Style DNA</Text>
       <Text style={styles.subtext}>Share some images that inspire your style, or skip to start clean.</Text>

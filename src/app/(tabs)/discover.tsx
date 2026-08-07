@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Pressable, TextInput, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { Platform, StyleSheet, View, Text, Pressable, TextInput, ScrollView, Alert, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, radius, typeScale, shadow } from "@/theme/tokens";
 import { getAllWardrobeItems, WardrobeItem } from "@/db/wardrobe.repository";
 import { analyzeWardrobeGaps, WardrobeGap } from "@/ml/gapAnalyzer";
 import { getDb } from "@/db/schema";
+
+import { calculateStyleDna, StyleDnaBreakdown } from "@/ml/styleEngine";
 
 interface WishlistItem {
   id: number;
@@ -17,16 +19,26 @@ export default function Discover() {
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [gaps, setGaps] = useState<WardrobeGap[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [dna, setDna] = useState<StyleDnaBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // New wishlist inputs
   const [newTitle, setNewTitle] = useState("");
   const [newReason, setNewReason] = useState("");
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
 
   const loadData = async () => {
     try {
       const allItems = await getAllWardrobeItems();
       setItems(allItems);
+
+      const computedDna = calculateStyleDna(allItems);
+      setDna(computedDna);
 
       const generatedGaps = analyzeWardrobeGaps(allItems);
       setGaps(generatedGaps);
@@ -95,12 +107,35 @@ export default function Discover() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.rose]} />}
+      >
         {/* Title */}
         <View style={styles.header}>
           <Text style={styles.title}>Discover</Text>
-          <Text style={styles.subtitle}>Optimize your closet and purchase lists.</Text>
+          <Text style={styles.subtitle}>Personalized styling formulas & closet diagnostics.</Text>
         </View>
+
+        {/* Personalized Style Formulas based on Style DNA */}
+        {dna && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Style Formulas</Text>
+            <View style={styles.formulaCard}>
+              <View style={styles.formulaHeader}>
+                <Text style={styles.formulaTitle}>✨ {dna.primaryStyle} Formula</Text>
+                <Text style={styles.formulaPct}>{dna.primaryPct}% Match</Text>
+              </View>
+              <Text style={styles.formulaDesc}>
+                {dna.primaryStyle.includes('Casual') ? 'Mix relaxed basics with versatile layering pieces for effortless everyday style.' :
+                 dna.primaryStyle.includes('Minimalist') ? 'Build around clean lines and neutral foundations with selective accent pieces.' :
+                 dna.primaryStyle.includes('Ethnic') ? 'Balance traditional silhouettes with modern accessories for a culturally rich wardrobe.' :
+                 dna.primaryStyle.includes('Formal') ? 'Invest in tailored staples that transition from office to evening events.' :
+                 `Express your ${dna.primaryStyle} aesthetic through intentional color and texture combinations.`}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* Wardrobe Gaps Diagnostics Card */}
         <View style={styles.section}>
@@ -196,7 +231,7 @@ export default function Discover() {
                     accessible={true}
                     accessibilityRole="button"
                     accessibilityLabel={`Delete ${item.title}`}
-                    accessibilityHint="Permanently removes this item from your style wishlist"
+                    accessibilityHint="Removes this item permanently from your wishlist"
                   >
                     <Text style={styles.deleteText}>✕</Text>
                   </Pressable>
@@ -208,6 +243,21 @@ export default function Discover() {
             )}
           </View>
         </View>
+
+        {/* Import Hint Banner */}
+        <View style={styles.importHint}>
+          <View style={styles.importHintIcon}>
+            <Text style={styles.importHintEmoji}>📎</Text>
+          </View>
+          <Text style={styles.importHintText}>
+            Found something while shopping? <Text style={styles.boldText}>Share it to ChuChu</Text> from any app and it lands right here.
+          </Text>
+        </View>
+
+        {/* Data Wall Ethical Guarantee Note */}
+        <Text style={styles.discoverTrustNote}>
+          Ranked by usefulness, never by who paid for placement.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -249,6 +299,35 @@ const styles = StyleSheet.create({
     fontFamily: "Fraunces-SemiBold",
     fontSize: 18,
     color: colors.cocoa,
+  },
+  formulaCard: {
+    backgroundColor: colors.creamLinen,
+    padding: 20,
+    borderRadius: radius.md,
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: colors.creamDeep,
+  },
+  formulaHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  formulaTitle: {
+    fontFamily: "Fraunces-SemiBold",
+    fontSize: 15,
+    color: colors.cocoa,
+  },
+  formulaPct: {
+    fontFamily: "Nunito-ExtraBold",
+    fontSize: 12,
+    color: colors.roseDark,
+  },
+  formulaDesc: {
+    fontFamily: "Nunito-Regular",
+    fontSize: 13,
+    color: colors.cocoaSoft,
+    lineHeight: 18,
   },
   gapCard: {
     backgroundColor: colors.creamLinen,
@@ -399,5 +478,46 @@ const styles = StyleSheet.create({
     color: colors.cocoaSoft,
     textAlign: "center",
     marginTop: 10,
+  },
+  importHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.creamDeep,
+    borderStyle: "dashed",
+    backgroundColor: colors.whiteSoft,
+  },
+  importHintIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.lilacPale,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  importHintEmoji: {
+    fontSize: 16,
+  },
+  importHintText: {
+    flex: 1,
+    fontFamily: "Nunito-Regular",
+    fontSize: 12,
+    color: colors.cocoaSoft,
+    lineHeight: 16,
+  },
+  boldText: {
+    fontFamily: "Nunito-Bold",
+    color: colors.cocoa,
+  },
+  discoverTrustNote: {
+    fontFamily: "Nunito-Bold",
+    fontSize: 11,
+    color: colors.cocoaSoft,
+    textAlign: "center",
+    fontStyle: "italic",
+    marginTop: 6,
   },
 });

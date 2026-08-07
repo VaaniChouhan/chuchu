@@ -5,6 +5,8 @@ import { router } from "expo-router";
 import { colors, typeScale } from "@/theme/tokens";
 import { ChuChuIllustration } from "@/components/ChuChuIllustration";
 import { useProfileStore } from "@/store/useProfileStore";
+import { ProgressRing } from "@/components/ProgressRing";
+import { StepIndicator } from "@/components/StepIndicator";
 
 const LINES = [
   "Learning your colors...",
@@ -16,21 +18,43 @@ const LINES = [
 
 export default function Generating() {
   const [lineIndex, setLineIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
   const completeOnboarding = useProfileStore((s) => s.completeOnboarding);
 
   useEffect(() => {
-    // Cycle text lines every 3 seconds for a responsive feel
-    const interval = setInterval(() => {
-      setLineIndex((i) => (i + 1) % LINES.length);
-    }, 3000);
+    let isMounted = true;
+    let timer: NodeJS.Timeout;
+
+    // Cycle text lines every 300ms roughly, up to 1.5s
+    const textInterval = setInterval(() => {
+      if (isMounted) {
+        setLineIndex((i) => (i + 1) % LINES.length);
+      }
+    }, 300);
+
+    // Update progress ring to reach 100 in 1500ms (every 15ms + 1%)
+    const progressInterval = setInterval(() => {
+      if (isMounted) {
+        setProgress((p) => {
+          if (p >= 100) {
+            clearInterval(progressInterval);
+            return 100;
+          }
+          return p + 1;
+        });
+      }
+    }, 15);
 
     const saveAndProceed = async () => {
       try {
-        // Run database batch insert/write profile
         await completeOnboarding();
-        // Wait 10 seconds total to show style DNA generation process
-        await new Promise((resolve) => setTimeout(resolve, 10000));
-        router.replace("/onboarding/first-recommendation");
+        if (!isMounted) return;
+
+        timer = setTimeout(() => {
+          if (isMounted) {
+            router.replace("/onboarding/first-recommendation");
+          }
+        }, 1500);
       } catch (e) {
         console.error("Generating screen process failed:", e);
       }
@@ -38,13 +62,24 @@ export default function Generating() {
 
     saveAndProceed();
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(textInterval);
+      clearInterval(progressInterval);
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
+      <StepIndicator totalSteps={6} currentStep={5} />
       <View style={styles.content}>
-        <ChuChuIllustration pose="knitting" size={130} animated={true} />
+        <View style={styles.ringWrapper}>
+          <ProgressRing current={progress} target={100} size={150} strokeWidth={6} />
+          <View style={styles.illusCenter}>
+            <ChuChuIllustration pose="knitting" size={90} animated={true} />
+          </View>
+        </View>
         <Text style={styles.headline}>{LINES[lineIndex]}</Text>
         <Text style={styles.subtext}>ChuChu is analyzing your wardrobe elements.</Text>
       </View>
@@ -76,5 +111,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.cocoaSoft,
     textAlign: "center",
+  },
+  ringWrapper: {
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  illusCenter: {
+    position: "absolute",
   },
 });

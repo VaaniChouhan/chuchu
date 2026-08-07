@@ -1,21 +1,26 @@
-import { useEffect, useState } from 'react';
-import { useColorScheme as useRNColorScheme } from 'react-native';
+import { useEffect, useState } from "react";
+import { useColorScheme as useRNColorScheme } from "react-native";
+import { useProfileStore } from "@/store/useProfileStore";
 
 /**
- * To support static rendering, this value needs to be re-calculated on the client side for web
+ * Web version: handles SSR hydration + user theme override.
  */
 export function useColorScheme() {
   const [hasHydrated, setHasHydrated] = useState(false);
+  const systemScheme = useRNColorScheme();
+  const themeOverride = useProfileStore((s) => s.themeOverride);
 
   useEffect(() => {
     setHasHydrated(true);
   }, []);
 
-  const colorScheme = useRNColorScheme();
-
-  if (hasHydrated) {
-    return colorScheme;
+  if (!hasHydrated) {
+    return "light";
   }
 
-  return 'light';
+  if (themeOverride === "light" || themeOverride === "dark") {
+    return themeOverride;
+  }
+
+  return systemScheme ?? "light";
 }
