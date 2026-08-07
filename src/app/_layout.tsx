@@ -9,7 +9,30 @@ import { initDatabase } from "@/db/schema";
 import { useProfileStore } from "@/store/useProfileStore";
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 
+import { Platform } from "react-native";
+
 SplashScreen.preventAutoHideAsync();
+
+// Web Font Fallback Rule Injection
+if (Platform.OS === "web" && typeof document !== "undefined") {
+  const styleEl = document.getElementById("chuchu-typography-fallback");
+  if (!styleEl) {
+    const style = document.createElement("style");
+    style.id = "chuchu-typography-fallback";
+    style.textContent = `
+      body, button, input, textarea, select {
+        font-family: 'Nunito-Regular', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+      h1, h2, h3, h4, .chuchu-display {
+        font-family: 'Fraunces-SemiBold', Georgia, 'Times New Roman', serif !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

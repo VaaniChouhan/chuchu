@@ -55,12 +55,50 @@ export const archetypeAccents = {
 
 export type Archetype = keyof typeof archetypeAccents;
 
+/**
+ * Mathematical Typography Scale & System Font Stacks
+ * Based on 1.200 Minor Third typographic scale & System Humanist font fallbacks.
+ */
+export const fontFamilies = {
+  display: 'Fraunces-SemiBold, Georgia, "Times New Roman", serif',
+  displayMedium: 'Fraunces-Medium, Georgia, serif',
+  bodyBold: 'Nunito-Bold, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  bodySemiBold: 'Nunito-SemiBold, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  bodyRegular: 'Nunito-Regular, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  mono: 'ui-monospace, "Cascadia Code", Menlo, Consolas, monospace',
+} as const;
+
 export const typeScale = {
-  greeting: 27,
-  screenTitle: 20,
-  cardTitle: 17,
+  hero: 34,
+  greeting: 28,
+  screenTitle: 22,
+  sectionHeader: 18,
+  cardTitle: 16,
   body: 14,
+  subtext: 13,
   caption: 11,
+} as const;
+
+export const lineHeights = {
+  tight: 1.15,
+  heading: 1.25,
+  body: 1.5,
+  relaxed: 1.65,
+} as const;
+
+export const fontWeights = {
+  regular: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
+  heavy: "800",
+} as const;
+
+export const letterSpacing = {
+  tight: -0.5,
+  normal: 0,
+  wide: 0.4,
+  caps: 1.1,
 } as const;
 
 export const radius = { lg: 28, md: 18, sm: 12 } as const;
