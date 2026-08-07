@@ -16,6 +16,8 @@ export default function BodyProfile() {
   const setTempProfile = useProfileStore((s) => s.setTempProfile);
 
   const [isAdult, setIsAdult] = useState<boolean | null>(null);
+  const [gender, setGender] = useState<string>("Women's");
+  const [bodyShape, setBodyShape] = useState<string>("Rectangle / Athletic");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [fit, setFit] = useState<string | null>(null);
@@ -47,8 +49,10 @@ export default function BodyProfile() {
       tempPreferredFit: fit,
       tempBudgetTier: budget,
       tempSkinUndertone: undertone,
+      tempGender: gender,
+      tempBodyShape: bodyShape,
     });
-    router.replace("/onboarding/add-items");
+    router.replace("/onboarding/generating");
   };
 
   const isFormValid = isAdult && fit && budget && (undertoneMethod !== null);
@@ -82,6 +86,37 @@ export default function BodyProfile() {
               {isAdult && <Text style={styles.checkMark}>✓</Text>}
             </View>
           </Pressable>
+        </View>
+        {/* Gender / Styling Focus */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Styling Focus</Text>
+          <View style={styles.segmentContainer}>
+            {["Women's", "Men's", "Unisex / Neutral"].map((g) => (
+              <Pressable
+                key={g}
+                style={[styles.segmentBtn, gender === g && styles.segmentBtnActive]}
+                onPress={() => setGender(g)}
+              >
+                <Text style={[styles.segmentText, gender === g && styles.segmentTextActive]}>{g}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* Body Silhouette */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Body Silhouette</Text>
+          <View style={styles.segmentContainer}>
+            {["Hourglass", "Pear", "Rectangle", "Inverted Triangle", "Apple"].map((s) => (
+              <Pressable
+                key={s}
+                style={[styles.segmentBtn, bodyShape === s && styles.segmentBtnActive]}
+                onPress={() => setBodyShape(s)}
+              >
+                <Text style={[styles.segmentText, bodyShape === s && styles.segmentTextActive]}>{s}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         {/* Height & Weight Inputs */}
@@ -284,6 +319,33 @@ const styles = StyleSheet.create({
   inputContainer: {
     flex: 1,
     gap: 8,
+  },
+  segmentContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  segmentBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.creamDeep,
+    backgroundColor: colors.whiteSoft,
+  },
+  segmentBtnActive: {
+    borderColor: colors.rose,
+    backgroundColor: colors.rosePale,
+  },
+  segmentText: {
+    fontFamily: "Nunito-SemiBold",
+    fontSize: 12,
+    color: colors.cocoaSoft,
+  },
+  segmentTextActive: {
+    color: colors.rose,
+    fontFamily: "Nunito-Bold",
   },
   label: {
     fontFamily: "Nunito-Bold",

@@ -36,15 +36,26 @@ export default function Profile() {
   const [editHeight, setEditHeight] = useState(String(profile.tempHeightCm || "172"));
   const [editWeight, setEditWeight] = useState(String(profile.tempWeightKg || "68"));
   const [editFit, setEditFit] = useState(profile.tempPreferredFit || "Regular");
+  const [editGender, setEditGender] = useState(profile.tempGender || "Women's");
+  const [editBodyShape, setEditBodyShape] = useState(profile.tempBodyShape || "Rectangle");
+  const [editColorSeason, setEditColorSeason] = useState(profile.tempColorSeason || "Warm Autumn");
+  const [editClimate, setEditClimate] = useState(profile.tempClimate || "Temperate");
+  const [editWaistSize, setEditWaistSize] = useState(String(profile.tempWaistSizeInch || "30"));
 
   const handleSaveProfile = async () => {
     try {
       const h = parseInt(editHeight, 10) || null;
       const w = parseInt(editWeight, 10) || null;
+      const waist = parseInt(editWaistSize, 10) || 30;
       profile.setTempProfile({
         tempHeightCm: h,
         tempWeightKg: w,
         tempPreferredFit: editFit,
+        tempGender: editGender,
+        tempBodyShape: editBodyShape,
+        tempColorSeason: editColorSeason,
+        tempClimate: editClimate,
+        tempWaistSizeInch: waist,
       });
       const db = getDb();
       await db.runAsync(
@@ -52,7 +63,7 @@ export default function Profile() {
         [h, w, editFit]
       );
       setEditModalVisible(false);
-      Alert.alert("Saved! ✨", "Profile specifications updated.");
+      Alert.alert("Saved! ✨", "All personal specifications and styling parameters updated.");
     } catch (e) {
       console.error("Failed to save profile:", e);
     }
@@ -354,6 +365,51 @@ export default function Profile() {
               </View>
 
               <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Styling Focus</Text>
+                <View style={styles.fitPillRow}>
+                  {["Women's", "Men's", "Unisex"].map((g) => (
+                    <Pressable
+                      key={g}
+                      style={[styles.fitPill, editGender === g && styles.fitPillSelected]}
+                      onPress={() => setEditGender(g)}
+                    >
+                      <Text style={[styles.fitPillText, editGender === g && styles.fitPillTextSelected]}>{g}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Body Silhouette</Text>
+                <View style={styles.fitPillRow}>
+                  {["Hourglass", "Pear", "Rectangle", "Apple"].map((s) => (
+                    <Pressable
+                      key={s}
+                      style={[styles.fitPill, editBodyShape === s && styles.fitPillSelected]}
+                      onPress={() => setEditBodyShape(s)}
+                    >
+                      <Text style={[styles.fitPillText, editBodyShape === s && styles.fitPillTextSelected]}>{s}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Color Season Palette</Text>
+                <View style={styles.fitPillRow}>
+                  {["Spring Warm", "Summer Cool", "Warm Autumn", "Winter Vivid"].map((c) => (
+                    <Pressable
+                      key={c}
+                      style={[styles.fitPill, editColorSeason === c && styles.fitPillSelected]}
+                      onPress={() => setEditColorSeason(c)}
+                    >
+                      <Text style={[styles.fitPillText, editColorSeason === c && styles.fitPillTextSelected]}>{c}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Fit Preference</Text>
                 <View style={styles.fitPillRow}>
                   {["Slim", "Regular", "Relaxed", "Oversized"].map((f) => (
@@ -366,6 +422,18 @@ export default function Profile() {
                     </Pressable>
                   ))}
                 </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Waist Size (inches)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  keyboardType="numeric"
+                  value={editWaistSize}
+                  onChangeText={setEditWaistSize}
+                  placeholder="e.g. 30"
+                  placeholderTextColor={colors.cocoaSoft}
+                />
               </View>
 
               <View style={styles.modalBtnRow}>

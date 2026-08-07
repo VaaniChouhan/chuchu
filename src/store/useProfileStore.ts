@@ -15,13 +15,19 @@ interface ProfileState {
   cloudBackup: boolean;
   telemetry: boolean;
 
-  // Temporary fields for onboarding session state
+  // Temporary fields for onboarding & profile customization
   tempHeightCm: number | null;
   tempWeightKg: number | null;
   tempPreferredFit: string | null;
   tempBudgetTier: string | null;
   tempSkinUndertone: string | null;
   tempStyleImportSource: string | null;
+  tempGender: string | null;
+  tempBodyShape: string | null;
+  tempColorSeason: string | null;
+  tempPrimaryFormality: string | null;
+  tempClimate: string | null;
+  tempWaistSizeInch: number | null;
 
   setArchetype: (a: Archetype) => void;
   setTempProfile: (data: Partial<Omit<ProfileState, 'setArchetype' | 'setTempProfile' | 'completeOnboarding' | 'hydrate' | 'setThemeOverride' | 'setPreference'>>) => void;
@@ -58,6 +64,12 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   tempBudgetTier: null,
   tempSkinUndertone: null,
   tempStyleImportSource: null,
+  tempGender: "Unisex",
+  tempBodyShape: "Regular",
+  tempColorSeason: "Warm Autumn",
+  tempPrimaryFormality: "Casual Everyday",
+  tempClimate: "Temperate",
+  tempWaistSizeInch: 30,
 
   setArchetype: (a) => set({ archetype: a }),
   setTempProfile: (data) => set((state) => ({ ...state, ...data })),
