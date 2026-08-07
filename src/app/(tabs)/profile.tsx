@@ -176,7 +176,7 @@ export default function Profile() {
         {/* Profile Hero Block */}
         <View style={styles.profileHero}>
           <View style={styles.avatarWrap}>
-            <ChuChuMascot size={58} />
+            <ChuChuMascot size={96} emotion="contentment" />
           </View>
           <Text style={styles.profileArchetype}>{greeting.archetypeName}</Text>
           <Text style={styles.profileTag}>Style DNA · updated today</Text>

@@ -3,7 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, radius, typeScale } from "@/theme/tokens";
-import { ChuChuIllustration } from "@/components/ChuChuIllustration";
+import { ChuChuMascot } from "@/components/ChuChu";
 import { StepIndicator } from "@/components/StepIndicator";
 
 export default function Welcome() {
@@ -12,7 +12,7 @@ export default function Welcome() {
       <SafeAreaView style={styles.safeArea}>
         <StepIndicator totalSteps={6} currentStep={1} />
         <View style={styles.mascotContainer}>
-          <ChuChuIllustration pose="sleepy" size={140} />
+          <ChuChuMascot size={150} emotion="sparkling_joy" />
         </View>
         <Text style={styles.headline}>Your closet's about to feel like home.</Text>
         <Pressable

@@ -129,7 +129,7 @@ export default function Home() {
 
         {/* ChuChu Speech Note */}
         <View style={styles.chuchuNote}>
-          <ChuChuMascot size={44} />
+          <ChuChuMascot size={88} emotion="sparkling_joy" />
           <View style={styles.speechBubble}>
             <Text style={styles.speechText}>{greeting.line}</Text>
           </View>

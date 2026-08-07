@@ -10,6 +10,8 @@ import { StepIndicator } from "@/components/StepIndicator";
 import { hapticSuccess } from "@/utils/haptics";
 import Animated, { ZoomIn } from "react-native-reanimated";
 
+import { ChuChuMascot } from "@/components/ChuChu";
+
 export default function FirstRecommendation() {
   const completeOnboarding = useProfileStore((s) => s.completeOnboarding);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
@@ -54,6 +56,9 @@ export default function FirstRecommendation() {
     <SafeAreaView style={styles.container}>
       <StepIndicator totalSteps={6} currentStep={6} />
       <View style={styles.content}>
+        <View style={{ alignItems: "center", marginBottom: 8 }}>
+          <ChuChuMascot size={88} emotion="sparkling_joy" />
+        </View>
         <Text style={styles.title}>Looking sharp! 🌷</Text>
         <Text style={styles.subtitle}>Here is your first daily outfit recommendation designed by ChuChu.</Text>
 

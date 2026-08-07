@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { colors, typeScale } from "@/theme/tokens";
-import { ChuChuIllustration } from "@/components/ChuChuIllustration";
+import { ChuChuMascot } from "@/components/ChuChu";
 import { useProfileStore } from "@/store/useProfileStore";
 import { ProgressRing } from "@/components/ProgressRing";
 import { StepIndicator } from "@/components/StepIndicator";
@@ -77,7 +77,7 @@ export default function Generating() {
         <View style={styles.ringWrapper}>
           <ProgressRing current={progress} target={100} size={150} strokeWidth={6} />
           <View style={styles.illusCenter}>
-            <ChuChuIllustration pose="knitting" size={90} animated={true} />
+            <ChuChuMascot size={96} emotion="curious" />
           </View>
         </View>
         <Text style={styles.headline}>{LINES[lineIndex]}</Text>
