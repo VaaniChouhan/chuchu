@@ -75,17 +75,10 @@ export default function Home() {
     try {
       const db = getDb();
       const ids = suggestion.items.map((i) => i.id);
-      const res = await db.runAsync(
+      await db.runAsync(
         "INSERT INTO outfit_history (item_ids, confidence) VALUES (?, ?)",
-        ['', suggestion.score]
+        [JSON.stringify(ids), suggestion.score]
       );
-      const historyId = res.lastInsertRowId;
-      for (const id of ids) {
-        await db.runAsync(
-          "INSERT INTO outfit_items (outfit_history_id, wardrobe_item_id) VALUES (?, ?)",
-          [historyId, id]
-        );
-      }
       Alert.alert(
         "Outfit Logged! ✨",
         "Your outfit for today is registered. Check back this evening for feedback!",
