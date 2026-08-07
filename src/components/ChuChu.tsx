@@ -1,5 +1,5 @@
 import React from "react";
-import { ChuChu3DMascot, MascotEmotion } from "./ChuChu3DMascot";
+import { ChuChuMascot2D, MascotEmotion } from "./ChuChuMascot2D";
 
 interface ChuChuMascotProps {
   size?: number;
@@ -9,12 +9,12 @@ interface ChuChuMascotProps {
 }
 
 export function ChuChuMascot({
-  size = 52,
+  size = 56,
   emotion = "idle",
   interactive = true,
   onTap,
 }: ChuChuMascotProps) {
-  return <ChuChu3DMascot size={size} emotion={emotion} interactive={interactive} onTap={onTap} />;
+  return <ChuChuMascot2D size={size} emotion={emotion} interactive={interactive} onTap={onTap} />;
 }
 
-export { ChuChu3DMascot };
+export { ChuChuMascot2D };
