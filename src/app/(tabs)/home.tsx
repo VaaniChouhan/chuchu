@@ -161,8 +161,7 @@ export default function Home() {
 
           <View style={styles.mascotCenterFrame}>
             <ChuChuMascot
-              size={180}
-              useHDVector={true}
+              size={190}
               emotion="sparkling_joy"
               interactive={true}
             />
