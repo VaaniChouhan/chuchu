@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Pressable } from "react-native";
 import Svg, {
   Circle,
@@ -23,6 +23,8 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { hapticMedium, hapticSuccess } from "@/utils/haptics";
+
+import { ChuChuSVG } from "./ChuChuSVG";
 
 export type MascotEmotion =
   | "idle"
@@ -50,6 +52,7 @@ interface ChuChuMascot2DProps {
   peekPosition?: PeekPosition;
   randomPeek?: boolean;
   interactive?: boolean;
+  useHDVector?: boolean;
   onTap?: () => void;
 }
 
@@ -59,6 +62,7 @@ export function ChuChuMascot2D({
   peekPosition = "none",
   randomPeek = false,
   interactive = true,
+  useHDVector = false,
   onTap,
 }: ChuChuMascot2DProps) {
   const [activeEmotion, setActiveEmotion] = useState<MascotEmotion>(emotion);
@@ -93,10 +97,35 @@ export function ChuChuMascot2D({
   const translateY = useSharedValue(0);
   const translateX = useSharedValue(0);
   const rotation = useSharedValue(0);
+  const scaleX = useSharedValue(1);
   const scaleY = useSharedValue(1);
+  const opacity = useSharedValue(1);
   const headTilt = useSharedValue(0);
   const wingFlap = useSharedValue(0);
   const eyeBlink = useSharedValue(1);
+
+  const prevEmotionRef = useRef<MascotEmotion>(activeEmotion);
+
+  // Expression Switching Spring Transition Pop
+  useEffect(() => {
+    if (prevEmotionRef.current !== activeEmotion) {
+      prevEmotionRef.current = activeEmotion;
+
+      // Organic Squash-and-Stretch Morph Pop on Expression Switch
+      scaleX.value = withSequence(
+        withTiming(1.12, { duration: 80, easing: Easing.out(Easing.quad) }),
+        withSpring(1, { damping: 11, stiffness: 180 })
+      );
+      scaleY.value = withSequence(
+        withTiming(0.88, { duration: 80, easing: Easing.out(Easing.quad) }),
+        withSpring(1, { damping: 11, stiffness: 180 })
+      );
+      opacity.value = withSequence(
+        withTiming(0.72, { duration: 60 }),
+        withTiming(1, { duration: 120 })
+      );
+    }
+  }, [activeEmotion]);
 
   // Periodic Natural Eye Blinking
   useEffect(() => {
@@ -172,19 +201,34 @@ export function ChuChuMascot2D({
       );
     } else if (emo === "curious" || emo === "confused" || emo === "puzzled") {
       headTilt.value = withSpring(0.38, { damping: 8, stiffness: 100 });
+      rotation.value = withRepeat(
+        withSequence(withTiming(0.12, { duration: 600 }), withTiming(-0.12, { duration: 600 })),
+        -1,
+        true
+      );
       translateY.value = withRepeat(
-        withSequence(withTiming(-5, { duration: 850 }), withTiming(5, { duration: 850 })),
+        withSequence(withTiming(-5, { duration: 750 }), withTiming(5, { duration: 750 })),
         -1,
         true
       );
     } else if (emo === "crying" || emo === "dejected") {
       rotation.value = withSpring(0.12, { damping: 12 });
       translateY.value = withRepeat(
-        withSequence(withTiming(3.5, { duration: 750 }), withTiming(0, { duration: 750 })),
+        withSequence(withTiming(4, { duration: 750 }), withTiming(1, { duration: 750 })),
         -1,
         true
       );
+      translateX.value = withRepeat(
+        withSequence(withTiming(-1.5, { duration: 65 }), withTiming(1.5, { duration: 65 })),
+        12,
+        true
+      );
     } else if (emo === "angry" || emo === "flustered_anger" || emo === "pouting") {
+      translateX.value = withRepeat(
+        withSequence(withTiming(-3, { duration: 55 }), withTiming(3, { duration: 55 })),
+        16,
+        true
+      );
       rotation.value = withRepeat(
         withSequence(withTiming(0.06, { duration: 70 }), withTiming(-0.06, { duration: 70 })),
         9,
@@ -193,12 +237,49 @@ export function ChuChuMascot2D({
       scaleY.value = withSpring(1.06, { damping: 10 });
     } else if (emo === "surprised") {
       translateY.value = withSequence(
-        withSpring(-16, { damping: 4, stiffness: 150 }),
+        withSpring(-18, { damping: 4, stiffness: 160 }),
         withSpring(0, { damping: 8 })
       );
+      scaleY.value = withSequence(
+        withTiming(1.18, { duration: 100 }),
+        withSpring(1, { damping: 9 })
+      );
       wingFlap.value = withSpring(28);
+    } else if (emo === "sleepy") {
+      headTilt.value = withSpring(0.15);
+      rotation.value = withTiming(0.04, { duration: 600 });
+      translateY.value = withRepeat(
+        withSequence(
+          withTiming(4, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 2200, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        true
+      );
+      scaleY.value = withRepeat(
+        withSequence(
+          withTiming(1.04, { duration: 2200, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        true
+      );
+    } else if (emo === "loving") {
+      translateY.value = withRepeat(
+        withSequence(
+          withTiming(-8, { duration: 1100, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 1100, easing: Easing.inOut(Easing.quad) })
+        ),
+        -1,
+        true
+      );
+      rotation.value = withRepeat(
+        withSequence(withTiming(0.08, { duration: 900 }), withTiming(-0.08, { duration: 900 })),
+        -1,
+        true
+      );
     } else {
-      // Idle / Contentment / Sleepy
+      // Idle / Contentment
       headTilt.value = withSpring(0);
       rotation.value = withTiming(0, { duration: 400 });
       translateY.value = withRepeat(
@@ -221,10 +302,12 @@ export function ChuChuMascot2D({
   }, [activeEmotion, currentPeek]);
 
   const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
     transform: [
       { translateX: translateX.value },
       { translateY: translateY.value },
       { rotate: `${rotation.value}rad` },
+      { scaleX: scaleX.value },
       { scaleY: scaleY.value },
     ],
   }));
@@ -255,7 +338,10 @@ export function ChuChuMascot2D({
       accessibilityLabel={`Chirpy Lovebird Mascot expressing ${activeEmotion}`}
     >
       <Animated.View style={[{ width: size, height: size }, animatedStyle]}>
-        <Svg width={size} height={size} viewBox="0 0 200 200">
+        {useHDVector ? (
+          <ChuChuSVG size={size} emotion={activeEmotion} />
+        ) : (
+          <Svg width={size} height={size} viewBox="0 0 200 200">
           <Defs>
             {/* Rich Feather Shading & Drop Shadows */}
             <Filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
@@ -542,6 +628,7 @@ export function ChuChuMascot2D({
             </G>
           )}
         </Svg>
+        )}
       </Animated.View>
     </Pressable>
   );

@@ -12,6 +12,7 @@ jest.mock("react-native-svg", () => {
     Text: View,
     G: View,
     Path: View,
+    SvgXml: View,
   };
 });
 
@@ -26,7 +27,18 @@ jest.mock("react-native-reanimated", () => {
     },
     useSharedValue: (init: any) => ({ value: init }),
     useAnimatedProps: () => ({}),
+    useAnimatedStyle: (fn: any) => ({}),
     withTiming: (val: any) => val,
+    withSequence: (...args: any[]) => args[0],
+    withRepeat: (val: any) => val,
+    withSpring: (val: any) => val,
+    Easing: {
+      inOut: () => ({}),
+      sin: {},
+      quad: {},
+      out: () => ({}),
+      in: () => ({}),
+    },
     FadeIn: { duration: () => ({ delay: () => ({}) }) },
     SlideInDown: { springify: () => ({ damping: () => ({}) }) },
   };
@@ -35,6 +47,8 @@ jest.mock("react-native-reanimated", () => {
 import { SwingTag } from "../components/SwingTag";
 import { ReasonPillRow } from "../components/ReasonPillRow";
 import { ProgressRing } from "../components/ProgressRing";
+import { ChuChuMascot } from "../components/ChuChu";
+import { ChuChuSVG } from "../components/ChuChuSVG";
 
 describe("UI Components Rendering Tests", () => {
   it("should render SwingTag without throwing", () => {
@@ -51,5 +65,25 @@ describe("UI Components Rendering Tests", () => {
   it("should render ProgressRing without throwing", () => {
     const rendered = render(<ProgressRing current={3} target={5} />);
     expect(rendered).toBeDefined();
+  });
+
+  it("should render ChuChuSVG without throwing", () => {
+    const rendered = render(<ChuChuSVG size={100} emotion="happy" />);
+    expect(rendered).toBeDefined();
+  });
+
+  it("should render ChuChuMascot in HD vector mode with sparkling_joy", () => {
+    const res = render(<ChuChuMascot size={96} useHDVector={true} emotion="sparkling_joy" />);
+    expect(res).toBeDefined();
+  });
+
+  it("should render ChuChuMascot in HD vector mode with crying emotion", () => {
+    const res1 = render(<ChuChuMascot size={96} useHDVector={true} emotion="crying" />);
+    expect(res1).toBeDefined();
+  });
+
+  it("should render ChuChuMascot in HD vector mode with angry emotion", () => {
+    const res2 = render(<ChuChuMascot size={96} useHDVector={true} emotion="angry" />);
+    expect(res2).toBeDefined();
   });
 });

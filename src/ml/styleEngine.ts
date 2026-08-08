@@ -57,62 +57,79 @@ export function generateOutfitSuggestion(items: WardrobeItem[], seed = 0, weathe
 
   const outfitsPool: Outfit[] = [];
 
-  // Outfit Type 1: Western Top + Bottom + optional Shoes / Outerwear
+  const pickBestAddition = (baseItems: WardrobeItem[], candidates: WardrobeItem[]): WardrobeItem | null => {
+    if (!candidates || candidates.length === 0) return null;
+    let best = candidates[0];
+    let bestScore = -1;
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      const score = calculateOutfitScore([...baseItems, candidate], seed + i);
+      if (score > bestScore) {
+        bestScore = score;
+        best = candidate;
+      }
+    }
+    return best;
+  };
+
+  // Outfit Type 1: Western Top + Bottom + best Shoes / Outerwear
   if (tops.length > 0 && bottoms.length > 0) {
     for (let tIdx = 0; tIdx < tops.length; tIdx++) {
       for (let bIdx = 0; bIdx < bottoms.length; bIdx++) {
         const comboItems = [tops[tIdx], bottoms[bIdx]];
-        if (shoes.length > 0) {
-          comboItems.push(shoes[(tIdx + bIdx + seed) % shoes.length]);
-        }
-        if (outers.length > 0 && (tIdx + bIdx + seed) % 2 === 0) {
-          comboItems.push(outers[(tIdx + bIdx) % outers.length]);
-        }
+        const bestShoe = pickBestAddition(comboItems, shoes);
+        if (bestShoe) comboItems.push(bestShoe);
+        const bestOuter = pickBestAddition(comboItems, outers);
+        if (bestOuter) comboItems.push(bestOuter);
         outfitsPool.push(buildOutfit(comboItems, seed, weather));
       }
     }
   }
 
-  // Outfit Type 2: Kurta + Bottom/Lehenga + optional Dupatta / Shoes
+  // Outfit Type 2: Kurta + Bottom/Lehenga + best Dupatta / Shoes
   if (kurtas.length > 0) {
-    const lowerItems = bottoms.length > 0 ? bottoms : lehengas;
+    const lowerItems = [...bottoms, ...lehengas];
     for (let kIdx = 0; kIdx < kurtas.length; kIdx++) {
       if (lowerItems.length > 0) {
         for (let lIdx = 0; lIdx < lowerItems.length; lIdx++) {
           const comboItems = [kurtas[kIdx], lowerItems[lIdx]];
-          if (dupattas.length > 0) {
-            comboItems.push(dupattas[(kIdx + lIdx) % dupattas.length]);
-          }
-          if (shoes.length > 0) {
-            comboItems.push(shoes[(kIdx + lIdx + seed) % shoes.length]);
-          }
+          const bestDupatta = pickBestAddition(comboItems, dupattas);
+          if (bestDupatta) comboItems.push(bestDupatta);
+          const bestShoe = pickBestAddition(comboItems, shoes);
+          if (bestShoe) comboItems.push(bestShoe);
           outfitsPool.push(buildOutfit(comboItems, seed + 2, weather));
         }
       } else {
         const comboItems = [kurtas[kIdx]];
-        if (dupattas.length > 0) comboItems.push(dupattas[kIdx % dupattas.length]);
-        if (shoes.length > 0) comboItems.push(shoes[kIdx % shoes.length]);
+        const bestDupatta = pickBestAddition(comboItems, dupattas);
+        if (bestDupatta) comboItems.push(bestDupatta);
+        const bestShoe = pickBestAddition(comboItems, shoes);
+        if (bestShoe) comboItems.push(bestShoe);
         outfitsPool.push(buildOutfit(comboItems, seed + 3, weather));
       }
     }
   }
 
-  // Outfit Type 3: Saree + optional Dupatta/Outerwear/Shoes
+  // Outfit Type 3: Saree + best Dupatta/Shoes
   if (sarees.length > 0) {
     for (let sIdx = 0; sIdx < sarees.length; sIdx++) {
       const comboItems = [sarees[sIdx]];
-      if (dupattas.length > 0) comboItems.push(dupattas[sIdx % dupattas.length]);
-      if (shoes.length > 0) comboItems.push(shoes[sIdx % shoes.length]);
+      const bestDupatta = pickBestAddition(comboItems, dupattas);
+      if (bestDupatta) comboItems.push(bestDupatta);
+      const bestShoe = pickBestAddition(comboItems, shoes);
+      if (bestShoe) comboItems.push(bestShoe);
       outfitsPool.push(buildOutfit(comboItems, seed + 4, weather));
     }
   }
 
-  // Outfit Type 4: Western Dress + optional Shoes / Layer
+  // Outfit Type 4: Western Dress + best Shoes / Layer
   if (dresses.length > 0) {
     for (let dIdx = 0; dIdx < dresses.length; dIdx++) {
       const comboItems = [dresses[dIdx]];
-      if (shoes.length > 0) comboItems.push(shoes[dIdx % shoes.length]);
-      if (outers.length > 0 && dIdx % 2 === 0) comboItems.push(outers[dIdx % outers.length]);
+      const bestShoe = pickBestAddition(comboItems, shoes);
+      if (bestShoe) comboItems.push(bestShoe);
+      const bestOuter = pickBestAddition(comboItems, outers);
+      if (bestOuter) comboItems.push(bestOuter);
       outfitsPool.push(buildOutfit(comboItems, seed + 5, weather));
     }
   }
@@ -134,7 +151,7 @@ export function generateOutfitSuggestion(items: WardrobeItem[], seed = 0, weathe
 
   // Sort by score descending and return seeded pick
   outfitsPool.sort((a, b) => b.score - a.score);
-  return outfitsPool[seed % outfitsPool.length];
+  return outfitsPool[Math.abs(seed) % outfitsPool.length];
 }
 
 function buildOutfit(items: WardrobeItem[], seed: number, weather?: WeatherContext): Outfit {
@@ -191,11 +208,21 @@ function lastWornPenalty(items: WardrobeItem[]): number {
   const now = Math.floor(Date.now() / 1000);
   let penalty = 0;
   for (const item of items) {
-    if (item.lastWornAt) {
-      const daysSinceWorn = (now - item.lastWornAt) / 86400;
-      if (daysSinceWorn <= 3) {
+    if (item.lastWornAt !== undefined && item.lastWornAt !== null) {
+      let wornTimestamp: number;
+      if (typeof item.lastWornAt === "string") {
+        wornTimestamp = Math.floor(Date.parse(item.lastWornAt) / 1000);
+      } else {
+        wornTimestamp = Number(item.lastWornAt);
+      }
+      if (isNaN(wornTimestamp) || wornTimestamp <= 0) continue;
+      if (wornTimestamp > 1e11) {
+        wornTimestamp = Math.floor(wornTimestamp / 1000);
+      }
+      const daysSinceWorn = (now - wornTimestamp) / 86400;
+      if (daysSinceWorn >= 0 && daysSinceWorn <= 3) {
         penalty += 0.15;
-      } else if (daysSinceWorn <= 7) {
+      } else if (daysSinceWorn > 3 && daysSinceWorn <= 7) {
         penalty += 0.08;
       }
     }

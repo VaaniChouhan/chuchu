@@ -1,5 +1,6 @@
 import React from "react";
 import { ChuChuMascot2D, MascotEmotion, PeekPosition } from "./ChuChuMascot2D";
+import { ChuChuSVG } from "./ChuChuSVG";
 
 interface ChuChuMascotProps {
   size?: number;
@@ -7,6 +8,7 @@ interface ChuChuMascotProps {
   peekPosition?: PeekPosition;
   randomPeek?: boolean;
   interactive?: boolean;
+  useHDVector?: boolean;
   onTap?: () => void;
 }
 
@@ -16,6 +18,7 @@ export function ChuChuMascot({
   peekPosition = "none",
   randomPeek = false,
   interactive = true,
+  useHDVector = false,
   onTap,
 }: ChuChuMascotProps) {
   return (
@@ -25,9 +28,10 @@ export function ChuChuMascot({
       peekPosition={peekPosition}
       randomPeek={randomPeek}
       interactive={interactive}
+      useHDVector={useHDVector}
       onTap={onTap}
     />
   );
 }
 
-export { ChuChuMascot2D, MascotEmotion, PeekPosition };
+export { ChuChuMascot2D, ChuChuSVG, MascotEmotion, PeekPosition };

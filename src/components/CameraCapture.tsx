@@ -18,12 +18,51 @@ export function CameraCapture({ onCapture, onCancel, disabled }: CameraCapturePr
   const cameraRef = useRef<CameraView>(null);
 
   if (Platform.OS === "web") {
+    const handleWebFileInput = (e: any) => {
+      const file = e.target?.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          if (evt.target?.result) {
+            onCapture(evt.target.result as string);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
     return (
       <View style={styles.center}>
-        <Text style={styles.mutedText}>Live camera is supported on iOS & Android native devices.</Text>
+        <Ionicons name="camera-outline" size={48} color={colors.rose} style={{ marginBottom: 12 }} />
+        <Text style={styles.title}>Web Photo Capture</Text>
+        <Text style={styles.mutedText}>
+          Use your web camera or upload a garment photo from your device.
+        </Text>
+        <label
+          style={{
+            display: "inline-block",
+            padding: "12px 24px",
+            backgroundColor: colors.rose,
+            color: "#fff",
+            borderRadius: "999px",
+            fontFamily: "Nunito-ExtraBold",
+            fontSize: "14px",
+            cursor: "pointer",
+            marginBottom: "16px",
+          }}
+        >
+          📷 Snap Photo / Upload File
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleWebFileInput}
+            style={{ display: "none" }}
+          />
+        </label>
         {onCancel && (
           <Pressable onPress={onCancel} style={styles.cancelBtn}>
-            <Text style={styles.cancelBtnText}>Use File Picker</Text>
+            <Text style={styles.cancelBtnText}>Cancel</Text>
           </Pressable>
         )}
       </View>

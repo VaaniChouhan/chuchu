@@ -127,14 +127,6 @@ export default function Home() {
           </View>
         )}
 
-        {/* ChuChu Speech Note */}
-        <View style={styles.chuchuNote}>
-          <ChuChuMascot size={88} emotion="sparkling_joy" />
-          <View style={styles.speechBubble}>
-            <Text style={styles.speechText}>{greeting.line}</Text>
-          </View>
-        </View>
-
         {/* Alternate Outfits Row */}
         <View style={styles.altSection}>
           <Text style={styles.altSectionTitle}>Alternate Pairings</Text>
@@ -158,6 +150,23 @@ export default function Home() {
               );
             })}
           </ScrollView>
+        </View>
+
+        {/* Big ChuChu Mascot Feature Card at Bottom Center */}
+        <View style={styles.bigMascotCard}>
+          <View style={styles.speechBubbleBig}>
+            <Text style={styles.speechTextBig}>"{greeting.line}"</Text>
+            <Text style={styles.chuchuSignature}>✨ Tap ChuChu for instant joy!</Text>
+          </View>
+
+          <View style={styles.mascotCenterFrame}>
+            <ChuChuMascot
+              size={180}
+              useHDVector={true}
+              emotion="sparkling_joy"
+              interactive={true}
+            />
+          </View>
         </View>
       </ScrollView>
 
@@ -243,25 +252,50 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
   },
-  chuchuNote: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 10,
-    marginVertical: 6,
-  },
-  speechBubble: {
-    backgroundColor: colors.goldPale,
-    borderRadius: 15,
-    borderBottomLeftRadius: 4,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    maxWidth: 220,
+  bigMascotCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFBF2",
+    borderRadius: radius.lg,
+    padding: 20,
+    paddingTop: 24,
+    marginTop: 12,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: "#F4E3C1",
+    gap: 16,
     ...shadow.soft,
   },
-  speechText: {
+  speechBubbleBig: {
+    backgroundColor: colors.goldPale,
+    borderRadius: 18,
+    borderBottomLeftRadius: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    maxWidth: "92%",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#EAD6AF",
+    ...shadow.soft,
+  },
+  speechTextBig: {
     fontFamily: "Nunito-Bold",
-    fontSize: 13,
+    fontSize: 14,
     color: colors.cocoa,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  chuchuSignature: {
+    fontFamily: "Nunito-ExtraBold",
+    fontSize: 11,
+    color: colors.roseDark,
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  mascotCenterFrame: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
   },
   altSection: {
     gap: 10,

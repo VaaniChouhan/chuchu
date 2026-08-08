@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View, Text, Pressable, Image, FlatList, ActivityI
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { colors, radius, typeScale, shadow } from "@/theme/tokens";
+import { useThemeTokens } from "@/hooks/useThemeTokens";
 import {
   getAllWardrobeItems,
   addWardrobeItem,
@@ -21,6 +22,7 @@ const COLUMN_COUNT = 3;
 const SPACING = 12;
 
 export default function Closet() {
+  const { colors: themeColors } = useThemeTokens();
   const [items, setItems] = useState<WardrobeItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<WardrobeItem[]>([]);
   const [health, setHealth] = useState<ClosetHealth | null>(null);

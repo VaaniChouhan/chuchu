@@ -60,7 +60,19 @@ class WebStorageDatabase implements ChuChuDb {
         localStorage.setItem("chuchu_moods", JSON.stringify(this.moodLogs));
       }
     } catch (e) {
-      console.warn("LocalStorage save error:", e);
+      console.warn("LocalStorage save quota error, pruning heavy image buffers:", e);
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          // If quota exceeded, prune image_uri payload size if base64 data URI
+          const lightweightWardrobe = this.wardrobeItems.map((i) => ({
+            ...i,
+            image_uri: i.image_uri && i.image_uri.length > 50000 ? i.image_uri.substring(0, 100) + "...[truncated]" : i.image_uri,
+          }));
+          localStorage.setItem("chuchu_wardrobe", JSON.stringify(lightweightWardrobe));
+        }
+      } catch (innerErr) {
+        console.error("Critical web storage write failure:", innerErr);
+      }
     }
   }
 
@@ -276,6 +288,12 @@ export async function initDatabase(): Promise<ChuChuDb> {
           item_ids TEXT,
           confidence REAL,
           worn_at INTEGER DEFAULT (strftime('%s','now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS outfit_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          outfit_history_id INTEGER REFERENCES outfit_history(id),
+          wardrobe_item_id INTEGER REFERENCES wardrobe_items(id)
         );
 
         CREATE TABLE IF NOT EXISTS mood_logs (

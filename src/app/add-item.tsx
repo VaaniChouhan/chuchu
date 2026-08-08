@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { colors, radius, typeScale, shadow } from "@/theme/tokens";
@@ -30,6 +30,7 @@ const CATEGORIES = ["top", "bottom", "dress", "outerwear", "shoes", "accessory",
 const PATTERNS = ["solid", "striped", "floral", "plaid", "graphic", "textured", "embroidered", "zari", "block-print"];
 
 export default function AddItemScreen() {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>("capture");
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -131,7 +132,7 @@ export default function AddItemScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(60, insets.bottom + 24) }]}>
         {step === "capture" && (
           <View style={styles.captureSection}>
             <View style={styles.placeholder}>

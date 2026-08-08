@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Pressable, ScrollView, TextInput, Alert, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { colors, radius, typeScale, shadow } from "@/theme/tokens";
 import { getAllWardrobeItems, WardrobeItem } from "@/db/wardrobe.repository";
@@ -15,6 +15,7 @@ const EVENT_PRESETS = [
 ];
 
 export default function OccasionPlanner() {
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<"single" | "travel">("single");
   const [selectedEvent, setSelectedEvent] = useState<string>("wedding");
   const [customEvent, setCustomEvent] = useState("");
@@ -72,7 +73,7 @@ export default function OccasionPlanner() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(60, insets.bottom + 24) }]}>
         {/* Header */}
         <View style={styles.header}>
           <Pressable style={styles.backBtn} onPress={() => router.back()}>

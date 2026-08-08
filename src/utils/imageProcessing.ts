@@ -37,48 +37,87 @@ export async function preprocessImage(
   const pixelCount = width * height * 3;
   const tensor = new Float32Array(pixelCount);
 
+  // Strategy 1: HTML Canvas extraction on Web target
+  if (typeof window !== "undefined" && typeof document !== "undefined") {
+    try {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = (err) => reject(err);
+        img.src = uri;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const data = imgData.data; // RGBA Uint8ClampedArray
+        let tensorIdx = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (tensorIdx < pixelCount) {
+            tensor[tensorIdx++] = data[i] / 255.0;     // R
+            tensor[tensorIdx++] = data[i + 1] / 255.0; // G
+            tensor[tensorIdx++] = data[i + 2] / 255.0; // B
+          }
+        }
+        console.info(`[ImageProcessor] Web canvas extracted ${pixelCount} exact pixel values from ${uri}`);
+        return tensor;
+      }
+    } catch (webErr) {
+      console.warn("[ImageProcessor] Web canvas pixel extraction failed, trying file byte sampling:", webErr);
+    }
+  }
+
+  // Strategy 2: Base64 byte decoding on Native / Node
   try {
-    // Attempt real image byte extraction via base64 file read
     const base64Data = await FileSystem.readAsStringAsync(uri, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // Decode base64 to byte values for pixel approximation
-    const binaryString = atob(base64Data);
-    const imageBytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      imageBytes[i] = binaryString.charCodeAt(i);
+    let binaryString = "";
+    if (typeof atob === "function") {
+      binaryString = atob(base64Data);
+    } else if (typeof Buffer !== "undefined") {
+      binaryString = Buffer.from(base64Data, "base64").toString("binary");
     }
 
-    // Skip image header (first ~54 bytes for BMP, variable for JPEG/PNG)
-    // and sample pixel data from the raw byte stream
-    const headerOffset = Math.min(128, Math.floor(imageBytes.length * 0.05));
-    const usableBytes = imageBytes.length - headerOffset;
+    if (binaryString.length > 0) {
+      const imageBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        imageBytes[i] = binaryString.charCodeAt(i);
+      }
 
-    if (usableBytes > pixelCount) {
-      // Stride through image bytes to sample pixel values
-      const stride = Math.max(1, Math.floor(usableBytes / pixelCount));
-      for (let i = 0; i < pixelCount; i++) {
-        const byteIdx = headerOffset + (i * stride) % usableBytes;
-        tensor[i] = (imageBytes[byteIdx] ?? 128) / 255.0;
+      const headerOffset = Math.min(128, Math.floor(imageBytes.length * 0.05));
+      const usableBytes = imageBytes.length - headerOffset;
+
+      if (usableBytes > pixelCount) {
+        const stride = Math.max(1, Math.floor(usableBytes / pixelCount));
+        for (let i = 0; i < pixelCount; i++) {
+          const byteIdx = headerOffset + (i * stride) % usableBytes;
+          tensor[i] = (imageBytes[byteIdx] ?? 128) / 255.0;
+        }
+      } else {
+        for (let i = 0; i < pixelCount; i++) {
+          const byteIdx = headerOffset + (i % Math.max(1, usableBytes));
+          tensor[i] = (imageBytes[byteIdx] ?? 128) / 255.0;
+        }
       }
-    } else {
-      // Image too small — tile the available bytes
-      for (let i = 0; i < pixelCount; i++) {
-        const byteIdx = headerOffset + (i % Math.max(1, usableBytes));
-        tensor[i] = (imageBytes[byteIdx] ?? 128) / 255.0;
-      }
+
+      console.info(`[ImageProcessor] Extracted ${pixelCount} values from ${imageBytes.length} image bytes`);
+      return tensor;
     }
-
-    console.info(`[ImageProcessor] Extracted ${pixelCount} values from ${imageBytes.length} image bytes`);
   } catch (e) {
-    // Fallback: URI-hash seeded deterministic values
-    // This ensures consistent output per image URI even when file I/O fails
     console.warn("[ImageProcessor] File read failed, using URI-hash fallback:", e);
-    const hash = simpleHash(uri);
-    for (let i = 0; i < pixelCount; i++) {
-      tensor[i] = ((hash + i * 37) % 256) / 255.0;
-    }
+  }
+
+  // Fallback Strategy 3: Deterministic URI hash
+  const hash = simpleHash(uri);
+  for (let i = 0; i < pixelCount; i++) {
+    tensor[i] = ((hash + i * 37) % 256) / 255.0;
   }
 
   return tensor;
@@ -167,6 +206,56 @@ export function rgbToHsl({ r, g, b }: RGB): HSL {
     s: Math.round(s * 100),
     l: Math.round(l * 100),
   };
+}
+
+export interface LAB {
+  l: number;
+  a: number;
+  b: number;
+}
+
+/**
+ * Converts RGB to CIELAB color space for perceptual color difference calculations.
+ */
+export function rgbToLab({ r, g, b }: RGB): LAB {
+  // Convert RGB (0-255) to sRGB (0-1)
+  let rNorm = r / 255;
+  let gNorm = g / 255;
+  let bNorm = b / 255;
+
+  rNorm = rNorm > 0.04045 ? Math.pow((rNorm + 0.055) / 1.055, 2.4) : rNorm / 12.92;
+  gNorm = gNorm > 0.04045 ? Math.pow((gNorm + 0.055) / 1.055, 2.4) : gNorm / 12.92;
+  bNorm = bNorm > 0.04045 ? Math.pow((bNorm + 0.055) / 1.055, 2.4) : bNorm / 12.92;
+
+  // Convert to XYZ color space (D65 Illuminant reference)
+  let x = (rNorm * 0.4124 + gNorm * 0.3576 + bNorm * 0.1805) / 0.95047;
+  let y = (rNorm * 0.2126 + gNorm * 0.7152 + bNorm * 0.0722) / 1.00000;
+  let z = (rNorm * 0.0193 + gNorm * 0.1192 + bNorm * 0.9505) / 1.08883;
+
+  const f = (n: number) => (n > 0.008856 ? Math.pow(n, 1 / 3) : 7.787 * n + 16 / 116);
+
+  const fx = f(x);
+  const fy = f(y);
+  const fz = f(z);
+
+  return {
+    l: Math.round((116 * fy - 16) * 100) / 100,
+    a: Math.round((500 * (fx - fy)) * 100) / 100,
+    b: Math.round((200 * (fy - fz)) * 100) / 100,
+  };
+}
+
+/**
+ * Calculates CIE76 Delta E perceptual color distance between two hex colors (0 to ~100+).
+ */
+export function colorDistanceDeltaE(hex1: string, hex2: string): number {
+  const lab1 = rgbToLab(hexToRgb(hex1));
+  const lab2 = rgbToLab(hexToRgb(hex2));
+  return Math.sqrt(
+    Math.pow(lab1.l - lab2.l, 2) +
+    Math.pow(lab1.a - lab2.a, 2) +
+    Math.pow(lab1.b - lab2.b, 2)
+  );
 }
 
 /**
