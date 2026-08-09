@@ -61,15 +61,20 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.whiteSoft,
+    backgroundColor: "rgba(255, 253, 249, 0.95)",
     borderTopWidth: 1,
-    borderTopColor: colors.creamDeep,
-    height: 60,
-    paddingBottom: 8,
-    paddingTop: 6,
+    borderTopColor: "rgba(243, 230, 211, 0.7)",
+    height: 64,
+    paddingBottom: 10,
+    paddingTop: 8,
+    elevation: 8,
+    shadowColor: colors.cocoa,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
   },
   tabLabel: {
     fontFamily: "Nunito-ExtraBold",
-    fontSize: 10,
+    fontSize: 11,
   },
 });

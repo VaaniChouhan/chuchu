@@ -319,6 +319,17 @@ export function ChuChuMascot2D({
   const handlePress = () => {
     if (!interactive) return;
     hapticSuccess();
+
+    // Tap Pop Elastic Burst Physics
+    scaleX.value = withSequence(
+      withTiming(1.22, { duration: 90 }),
+      withSpring(1, { damping: 9, stiffness: 220 })
+    );
+    scaleY.value = withSequence(
+      withTiming(0.82, { duration: 90 }),
+      withSpring(1, { damping: 9, stiffness: 220 })
+    );
+
     setActiveEmotion("sparkling_joy");
     if (onTap) onTap();
 

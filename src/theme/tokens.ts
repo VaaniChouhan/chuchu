@@ -119,3 +119,16 @@ export const shadow = {
     elevation: 6, // Android
   },
 } as const;
+
+export const glass = {
+  card: {
+    backgroundColor: "rgba(255, 251, 242, 0.90)",
+    borderWidth: 1.5,
+    borderColor: "rgba(244, 227, 193, 0.8)",
+  },
+  header: {
+    backgroundColor: "rgba(250, 244, 235, 0.92)",
+    borderBottomWidth: 1,
+    borderColor: "rgba(235, 222, 204, 0.6)",
+  },
+} as const;
