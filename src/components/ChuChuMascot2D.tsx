@@ -62,7 +62,7 @@ export function ChuChuMascot2D({
   peekPosition = "none",
   randomPeek = false,
   interactive = true,
-  useHDVector = true,
+  useHDVector = false,
   onTap,
 }: ChuChuMascot2DProps) {
   const [activeEmotion, setActiveEmotion] = useState<MascotEmotion>(emotion);
