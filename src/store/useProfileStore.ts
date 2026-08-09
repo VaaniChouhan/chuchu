@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Archetype } from "@/theme/tokens";
 import { getDb } from "@/db/schema";
+import { useSessionStore } from "./useSessionStore";
 
 export type ThemeOverride = "light" | "dark" | "system";
 
@@ -37,17 +38,8 @@ interface ProfileState {
   hydrate: () => Promise<void>;
 }
 
-/**
- * Profile store schema version: 1.
- * Persistence for this store is managed via SQLite (`user_profile` table in `src/db/schema.ts`).
- * Schema migrations are handled in SQLite via `PRAGMA user_version`.
- */
 export const PROFILE_STORE_VERSION = 1;
 
-/**
- * Zustand Profile Store (Version 1).
- * Custom async persistence via SQLite `hydrate()` and `db.runAsync()` instead of Zustand's `persist` middleware.
- */
 export const useProfileStore = create<ProfileState>((set, get) => ({
   archetype: null,
   onboardingComplete: false,
@@ -76,7 +68,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
   setThemeOverride: (theme) => {
     set({ themeOverride: theme });
-    // Persist to SQLite asynchronously
     try {
       const db = getDb();
       db.runAsync(
@@ -90,7 +81,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
   setPreference: (key, value) => {
     set({ [key]: value });
-    // Persist to SQLite asynchronously
     const colMap: Record<string, string> = {
       implicitLearning: "implicit_learning",
       cloudBackup: "cloud_backup",
@@ -109,10 +99,13 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
   completeOnboarding: async () => {
     try {
+      // 1. Sync onboarding completion to local session store (AsyncStorage/localStorage)
+      useSessionStore.getState().setHasCompletedOnboarding(true);
+
       const db = getDb();
       const s = get();
       
-      // Batch write all onboarding data to user_profile at the end of the flow
+      // 2. Batch write all onboarding data to SQLite
       await db.runAsync(
         `INSERT INTO user_profile (id, archetype, onboarding_complete, height_cm, weight_kg, preferred_fit, budget_tier, skin_undertone, style_import_source) 
          VALUES (1, ?, 1, ?, ?, ?, ?, ?, ?) 
@@ -139,11 +132,13 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       set({ onboardingComplete: true });
     } catch (e) {
       console.error("Failed to complete onboarding in SQLite:", e);
+      set({ onboardingComplete: true });
     }
   },
 
   hydrate: async () => {
     try {
+      const sessionCompleted = useSessionStore.getState().hasCompletedOnboarding;
       const db = getDb();
       const row = await db.getFirstAsync<any>(
         `SELECT archetype, onboarding_complete, height_cm, weight_kg, preferred_fit, 
@@ -152,9 +147,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
          FROM user_profile WHERE id = 1`
       );
       if (row) {
+        const isComplete = row.onboarding_complete === 1 || sessionCompleted;
         set({
           archetype: row.archetype as Archetype | null,
-          onboardingComplete: row.onboarding_complete === 1,
+          onboardingComplete: isComplete,
           tempHeightCm: row.height_cm,
           tempWeightKg: row.weight_kg,
           tempPreferredFit: row.preferred_fit,
@@ -166,11 +162,16 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           cloudBackup: row.cloud_backup === 1,
           telemetry: row.telemetry === 1,
         });
+      } else if (sessionCompleted) {
+        set({ onboardingComplete: true });
       }
     } catch (e) {
       console.warn("Failed to hydrate profile store from SQLite:", e);
+      const sessionCompleted = useSessionStore.getState().hasCompletedOnboarding;
+      if (sessionCompleted) {
+        set({ onboardingComplete: true });
+      }
     } finally {
-      // Always mark as hydrated even on error, so app doesn't hang
       set({ isHydrated: true });
     }
   },

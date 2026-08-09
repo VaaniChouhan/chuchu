@@ -1,14 +1,24 @@
+import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Platform } from "react-native";
 import { Redirect } from "expo-router";
 import { useProfileStore } from "@/store/useProfileStore";
+import { useSessionStore } from "@/store/useSessionStore";
 
 export default function Index() {
   const onboardingComplete = useProfileStore((s) => s.onboardingComplete);
   const isHydrated = useProfileStore((s) => s.isHydrated);
+  const sessionCompleted = useSessionStore((s) => s.hasCompletedOnboarding);
 
-  // Wait for profile store to hydrate from SQLite before deciding route
-  // This prevents flashing onboarding for returning users
+  useEffect(() => {
+    // Synchronize session store with profile store when hydrated
+    if (isHydrated && (onboardingComplete || sessionCompleted)) {
+      if (!sessionCompleted) {
+        useSessionStore.getState().setHasCompletedOnboarding(true);
+      }
+    }
+  }, [isHydrated, onboardingComplete, sessionCompleted]);
+
+  // Wait for profile & session store to hydrate before deciding route
   if (!isHydrated) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -17,7 +27,9 @@ export default function Index() {
     );
   }
 
-  if (!onboardingComplete) {
+  const isComplete = onboardingComplete || sessionCompleted;
+
+  if (!isComplete) {
     return <Redirect href="/onboarding/welcome" />;
   }
 
