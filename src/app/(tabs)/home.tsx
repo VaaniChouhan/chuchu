@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 24,
     gap: 20,
-    paddingBottom: 80,
+    paddingBottom: 130,
   },
   greetingBlock: {
     paddingHorizontal: 4,
