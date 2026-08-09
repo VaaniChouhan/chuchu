@@ -5,7 +5,7 @@ import { MascotEmotion } from "./ChuChuMascot2D";
 
 export const CHUCHU_EXPRESSION_SHEET_SVG_RAW = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="100%" viewBox="0 0 2816 1536" enable-background="new 0 0 2816 1536" xml:space="preserve">
-<path fill="#FAF4EB" opacity="1.000000" stroke="none" 
+<path fill="#2D1E18" fillRule="evenodd" opacity="1.000000" stroke="none" 
 	d="
 M2.000000,1378.000000 
 	C2.000000,1367.955811 2.000000,1357.911621 2.710166,1347.018066 

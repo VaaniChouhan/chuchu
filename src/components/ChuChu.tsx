@@ -18,7 +18,7 @@ export function ChuChuMascot({
   peekPosition = "none",
   randomPeek = false,
   interactive = true,
-  useHDVector = false,
+  useHDVector = true,
   onTap,
 }: ChuChuMascotProps) {
   return (
