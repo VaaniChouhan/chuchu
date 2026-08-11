@@ -280,6 +280,7 @@ export async function initDatabase(): Promise<ChuChuDb> {
           formality TEXT DEFAULT 'casual',
           confidence_state TEXT DEFAULT 'ai_detected',
           lifecycle_state TEXT DEFAULT 'active',
+          embedding TEXT,
           created_at INTEGER DEFAULT (strftime('%s','now'))
         );
 

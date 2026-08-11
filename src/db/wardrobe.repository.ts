@@ -11,6 +11,7 @@ export interface WardrobeItem {
   createdAt: number;
   lastWornAt?: number | null;
   wearCount?: number;
+  embedding?: string;
 }
 
 export interface NewWardrobeItem {
@@ -19,6 +20,7 @@ export interface NewWardrobeItem {
   dominantColor?: string;
   pattern?: string;
   confidenceState?: "ai_detected" | "user_edited" | "needs_review" | "confirmed";
+  embedding?: string;
 }
 
 export async function addWardrobeItem(item: NewWardrobeItem): Promise<number> {
@@ -188,3 +190,16 @@ export async function getAllItemUsageStats(): Promise<Record<number, { wornThisM
 
   return resultMap;
 }
+
+/**
+ * Perform on-device visual similarity search using local feature vector cosine similarity.
+ */
+export async function findVisuallySimilarGarments(targetItemId: number, limit = 5): Promise<WardrobeItem[]> {
+  const allItems = await getAllWardrobeItems(false);
+  const targetItem = allItems.find((i) => i.id === targetItemId);
+  if (!targetItem) return [];
+
+  const { findSimilarItems } = require("@/ml/embeddings");
+  return findSimilarItems(allItems, targetItem, limit);
+}
+

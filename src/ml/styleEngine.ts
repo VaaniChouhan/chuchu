@@ -195,6 +195,26 @@ function calculateOutfitScore(items: WardrobeItem[], seed: number): number {
     score -= 0.08; // Pattern conflict penalty
   }
 
+  // 3. Formality Context Matrix: penalty for clashing formality levels (e.g. casual vs formal)
+  const formalityScores: Record<string, number> = {
+    casual: 1,
+    smart_casual: 2,
+    business_formal: 3,
+    festive: 4,
+    ethno_fusion: 4,
+  };
+  const formalities = items
+    .map((i) => (i as any).formality?.toLowerCase() || "casual")
+    .map((f) => formalityScores[f] || 1);
+
+  if (formalities.length >= 2) {
+    const minF = Math.min(...formalities);
+    const maxF = Math.max(...formalities);
+    if (maxF - minF >= 2) {
+      score -= 0.15; // Formality mismatch penalty (e.g. casual shorts + formal suit jacket)
+    }
+  }
+
   // Small seed variation to avoid total tie deadlock
   score += ((seed % 7) * 0.01);
 

@@ -80,7 +80,7 @@ export function findSimilarItems(items: WardrobeItem[], targetItem: WardrobeItem
     .map((r) => r.item);
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
+export function cosineSimilarity(a: number[], b: number[]): number {
   if (!a || !b || a.length === 0 || b.length === 0 || a.length !== b.length) {
     return 0;
   }
